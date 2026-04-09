@@ -190,6 +190,9 @@ void task_opengrill(void* pvParameters) {
     String opengrill_server = "";
     int opengrill_port = 1883;
 
+    unsigned long last_publish_time = 0;
+    const unsigned long publish_interval_ms = 1000;
+
     while (true){
 
         if(opengrill_server != config::opengrill_server || opengrill_port != config::opengrill_port){
@@ -205,17 +208,22 @@ void task_opengrill(void* pvParameters) {
             if(opengrill_server != ""){
                 Serial.println("Opengrill server set, initializing connection");
                 config::opengrill_client.reconnect();
-                config::opengrill_client.loop();
             } else {
                 Serial.println("Opengrill server not set, skipping Opengrill connection");
             }
         }
 
-        if(opengrill_server != ""){
-            config::opengrill_client.publish_grill();
+        if(opengrill_server != "" && config::opengrill_client.connected()){
+            config::opengrill_client.loop();
+
+            unsigned long now = millis();
+            if (now - last_publish_time >= publish_interval_ms) {
+                last_publish_time = now;
+                config::opengrill_client.publish_grill();
+            }
         }
 
-        delay(1000);
+        delay(50);
     }
 }
 
@@ -229,6 +237,9 @@ void task_mqtt(void* pvParameters) {
 
     String mqtt_broker = "";
     int mqtt_port = 1883;
+
+    unsigned long last_mqtt_publish_time = 0;
+    const unsigned long mqtt_publish_interval_ms = 1000;
 
     while (true){
 
@@ -245,14 +256,19 @@ void task_mqtt(void* pvParameters) {
             if(mqtt_broker != ""){
                 Serial.println("MQTT broker set, initializing connection");
                 config::mqtt_client.reconnect();
-                config::mqtt_client.loop();
             } else {
                 Serial.println("MQTT broker not set, skipping MQTT connection");
             }
         }
 
-        if(mqtt_broker != ""){
-            config::mqtt_client.publish_grill();
+        if(mqtt_broker != "" && config::mqtt_client.connected()){
+            config::mqtt_client.loop();
+
+            unsigned long now = millis();
+            if (now - last_mqtt_publish_time >= mqtt_publish_interval_ms) {
+                last_mqtt_publish_time = now;
+                config::mqtt_client.publish_grill();
+            }
         }
 
         delay(1000);
