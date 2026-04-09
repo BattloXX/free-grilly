@@ -31,15 +31,16 @@ void Opengrill::setup(String opengrill_server, int mqtt_port){
     // Needed because otherwise we'd have to use static members
     // https://blog.mbedded.ninja/programming/languages/c-plus-plus/callbacks/#stdfunction-with-stdbind
     Opengrill::setCallback(std::bind(&Opengrill::receive_callback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+
 }
 
 void Opengrill::publish_grill(){
-    config::json_handler.load_json_status(mqtt_opengrill_buffer);
+    config::json_handler.load_opengrill_grill(mqtt_opengrill_buffer);
     Opengrill::publish(Opengrill::pub_topic_grill.c_str(), mqtt_opengrill_buffer);
 }
 
 void Opengrill::publish_probes(){
-    config::json_handler.load_json_probes(mqtt_opengrill_buffer);
+    config::json_handler.load_opengrill_probes(mqtt_opengrill_buffer);
     Opengrill::publish(Opengrill::pub_topic_probes.c_str(), mqtt_opengrill_buffer, true);
 }
 
@@ -54,10 +55,18 @@ void Opengrill::receive_callback(char* topic, byte* payload, unsigned int length
     }
     Serial.println();
 
-    // TODO handle grill
+    if (String(topic) == Opengrill::sub_topic_grill){
+        Serial.println("Received grill config update from Opengrill server");
+        jsonResult result = config::json_handler.save_opengrill_grill(mqtt_opengrill_buffer);
+
+        //Wipe the retained message, unsub and sub again to not trigger an echo loop
+        Opengrill::unsubscribe(Opengrill::sub_topic_grill.c_str());
+        Opengrill::publish(Opengrill::sub_topic_grill.c_str(), nullptr, 0, true);
+        Opengrill::subscribe(Opengrill::sub_topic_grill.c_str());
+    }
 
     if (String(topic) == Opengrill::sub_topic_probes){
-        jsonResult result = config::json_handler.save_json_probes(mqtt_opengrill_buffer);
+        jsonResult result = config::json_handler.save_opengrill_probes(mqtt_opengrill_buffer);
 
         //Wipe the retained message, unsub and sub again to not trigger an echo loop
         Opengrill::unsubscribe(Opengrill::sub_topic_probes.c_str());

@@ -1,8 +1,22 @@
 # Changelog (firmware only)
 
+## 2026-04-09
+- Cleaned up MQTT code
+- Updated mqtt connect/reconnect behavior with better handling
+- Added Opengrill settings to
+    - Web settings
+    - Api
+    - Api documentation
+    - Config storage management
+- Added opengrill handlers in jsonutilities
+- Added opengrill task runner in main loop
+- Cleaned up mqtt reconnect code in main loop
+- Main loop blocks less for mqtt/opengrill receive loop
+- Fixed issue with dns lookups failing
+
 ## 2026-03-30
 - Fix settings not being able to be updated - #25
-- added easter egg in settings
+- Added easter egg in settings
 
 ## 2026-03-22
 - Fix display update lock on screen timeout - PR #24 - Thanks @ctrochalakis!

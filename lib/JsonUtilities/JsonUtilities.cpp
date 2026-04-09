@@ -374,6 +374,146 @@ jsonResult JsonUtilities::save_json_probes(char* raw_json){
     return {true, "Ok"};
 }
 
+void JsonUtilities::load_opengrill_grill(char *buffer){
+    jsondoc.clear();
+
+    jsondoc["name"]                 = config::grill_name;
+    jsondoc["battery_percentage"]   = grill::battery_percentage;
+    jsondoc["temperature_unit"]     = config::temperature_unit;
+    jsondoc["max_supported_probes"] = 8;
+
+    JsonObject temperatures = jsondoc["temperatures"].to<JsonObject>();
+    temperatures["1"] = grill::probe_1.temperature;
+    temperatures["2"] = grill::probe_2.temperature;
+    temperatures["3"] = grill::probe_3.temperature;
+    temperatures["4"] = grill::probe_4.temperature;
+    temperatures["5"] = grill::probe_5.temperature;
+    temperatures["6"] = grill::probe_6.temperature;
+    temperatures["7"] = grill::probe_7.temperature;
+    temperatures["8"] = grill::probe_8.temperature;
+
+    jsondoc.shrinkToFit();
+    serializeJson(jsondoc, buffer, config::json_buffer_size);
+}
+
+jsonResult JsonUtilities::save_opengrill_grill(char* raw_json){
+    DeserializationError err = deserializeJson(jsondoc, raw_json);
+
+    if(err){ return {false, "Could not deserialize json"}; }
+
+    JsonObject json_data = jsondoc.as<JsonObject>();
+
+    // Data ingress
+    config::grill_name                = json_data["name"].as<String>();
+
+    config::config_helper.save_settings();
+    return {true, "Ok"};
+}
+
+
+void JsonUtilities::load_opengrill_probes(char* buffer){
+    jsondoc.clear();
+
+    JsonObject p1 = jsondoc["1"].to<JsonObject>();
+    p1["name"] = grill::probe_1.name;
+    p1["minimum_temperature"] = grill::probe_1.minimum_temperature;
+    p1["target_temperature"] = grill::probe_1.target_temperature;
+
+    JsonObject p2 = jsondoc["2"].to<JsonObject>();
+    p2["name"] = grill::probe_2.name;
+    p2["minimum_temperature"] = grill::probe_2.minimum_temperature;
+    p2["target_temperature"] = grill::probe_2.target_temperature;
+
+    JsonObject p3 = jsondoc["3"].to<JsonObject>();
+    p3["name"] = grill::probe_3.name;
+    p3["minimum_temperature"] = grill::probe_3.minimum_temperature;
+    p3["target_temperature"] = grill::probe_3.target_temperature;
+
+    JsonObject p4 = jsondoc["4"].to<JsonObject>();
+    p4["name"] = grill::probe_4.name;
+    p4["minimum_temperature"] = grill::probe_4.minimum_temperature;
+    p4["target_temperature"] = grill::probe_4.target_temperature;
+
+    JsonObject p5 = jsondoc["5"].to<JsonObject>();
+    p5["name"] = grill::probe_5.name;
+    p5["minimum_temperature"] = grill::probe_5.minimum_temperature;
+    p5["target_temperature"] = grill::probe_5.target_temperature;
+
+    JsonObject p6 = jsondoc["6"].to<JsonObject>();
+    p6["name"] = grill::probe_6.name;
+    p6["minimum_temperature"] = grill::probe_6.minimum_temperature;
+    p6["target_temperature"] = grill::probe_6.target_temperature;
+
+    JsonObject p7 = jsondoc["7"].to<JsonObject>();
+    p7["name"] = grill::probe_7.name;
+    p7["minimum_temperature"] = grill::probe_7.minimum_temperature;
+    p7["target_temperature"] = grill::probe_7.target_temperature;
+
+    JsonObject p8 = jsondoc["8"].to<JsonObject>();
+    p8["name"] = grill::probe_8.name;
+    p8["minimum_temperature"] = grill::probe_8.minimum_temperature;
+    p8["target_temperature"] = grill::probe_8.target_temperature;
+
+    jsondoc.shrinkToFit();
+    serializeJson(jsondoc, buffer, config::json_buffer_size);
+}
+
+jsonResult JsonUtilities::save_opengrill_probes(char* raw_json){
+
+    DeserializationError err = deserializeJson(jsondoc, raw_json);
+    if(err){ return {false, "Could not deserialize json"}; }
+
+    for (JsonPair item : jsondoc.as<JsonObject>()) {
+
+        int    probe_id            = atoi(item.key().c_str());
+
+        String name                = item.value()["name"];
+        float  minimum_temperature = item.value()["minimum_temperature"];
+        float  target_temperature  = item.value()["target_temperature"];
+
+        switch (probe_id){
+            case 1:
+                grill::probe_1.set_temperature(target_temperature, minimum_temperature);
+                grill::probe_1.set_name(name);
+                break;
+            case 2:
+                grill::probe_2.set_temperature(target_temperature, minimum_temperature);
+                grill::probe_2.set_name(name);
+                break;
+            case 3:
+                grill::probe_3.set_temperature(target_temperature, minimum_temperature);
+                grill::probe_3.set_name(name);
+                break;
+            case 4:
+                grill::probe_4.set_temperature(target_temperature, minimum_temperature);
+                grill::probe_4.set_name(name);
+                break;
+            case 5:
+                grill::probe_5.set_temperature(target_temperature, minimum_temperature);
+                grill::probe_5.set_name(name);
+                break;
+            case 6:
+                grill::probe_6.set_temperature(target_temperature, minimum_temperature);
+                grill::probe_6.set_name(name);
+                break;
+            case 7:
+                grill::probe_7.set_temperature(target_temperature, minimum_temperature);
+                grill::probe_7.set_name(name);
+                break;
+            case 8:
+                grill::probe_8.set_temperature(target_temperature, minimum_temperature);
+                grill::probe_8.set_name(name);
+                break;
+            default:
+                break;
+        }
+    }
+
+    config::config_helper.save_probes();
+
+    return {true, "Ok"};
+}
+
 void JsonUtilities::load_json_wifiscan(char* buffer){
 
     Serial.println("Starting WIFI scan");

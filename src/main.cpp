@@ -223,6 +223,11 @@ void task_opengrill(void* pvParameters) {
             }
         }
 
+        if(opengrill_server != "" && !config::opengrill_client.connected()){
+            Serial.println("Opengrill client disconnected, trying to reconnect");
+            config::opengrill_client.reconnect();
+        }
+
         delay(50);
     }
 }
@@ -269,6 +274,11 @@ void task_mqtt(void* pvParameters) {
                 last_mqtt_publish_time = now;
                 config::mqtt_client.publish_grill();
             }
+        }
+
+        if(mqtt_broker != "" && !config::mqtt_client.connected()){
+            Serial.println("MQTT client disconnected, trying to reconnect");
+            config::mqtt_client.reconnect();
         }
 
         delay(50);

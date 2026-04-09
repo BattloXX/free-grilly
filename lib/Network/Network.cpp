@@ -39,7 +39,7 @@ bool connect_to_wifi()
     IPAddress wifi_subnet;  wifi_subnet.fromString(config::wifi_subnet);
     IPAddress wifi_gateway; wifi_gateway.fromString(config::wifi_gateway);
     IPAddress wifi_dns;     wifi_dns.fromString(config::wifi_dns);
-    IPAddress wifi_dns2;    wifi_dns2.fromString("0.0.0.0");
+    IPAddress wifi_dns2;    wifi_dns.fromString(config::wifi_dns);
 
     int timeout = CONNECT_TIMEOUT_SECONDS * 1000;
     int step = 500;
@@ -84,7 +84,7 @@ void event_wifi_connected(WiFiEvent_t event, WiFiEventInfo_t info)
 void event_wifi_ip_acquired(WiFiEvent_t event, WiFiEventInfo_t info)
 {
     config::wifi_ip = WiFi.localIP().toString();
-    
+
     // Check for internet connectivity
     if (WiFi.hostByName(domainName, resolved_ip)){
         Serial.println("Internet");
@@ -107,7 +107,7 @@ void event_wifi_disconnected(WiFiEvent_t event, WiFiEventInfo_t info)
 
     Serial.print("Reason: ");
     Serial.println(get_wifi_error_status(info.wifi_sta_disconnected.reason).c_str());
-    
+
     Serial.println("Trying to reconnect");
     WiFi.reconnect();
 }
