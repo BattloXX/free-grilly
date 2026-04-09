@@ -41,6 +41,16 @@ bool connect_to_wifi()
     IPAddress wifi_dns;     wifi_dns.fromString(config::wifi_dns);
     IPAddress wifi_dns2;    wifi_dns.fromString(config::wifi_dns);
 
+    if (config::wifi_ip != "0.0.0.0"){
+        if (!WiFi.config(wifi_ip, wifi_gateway, wifi_subnet, wifi_dns, wifi_dns2)){
+            Serial.println("Failed to configure Static IP");
+        } else {
+            Serial.println("Static IP configured!");
+        }
+    }
+
+    Serial.println("");
+
     int timeout = CONNECT_TIMEOUT_SECONDS * 1000;
     int step = 500;
 
@@ -57,16 +67,6 @@ bool connect_to_wifi()
             Serial.println("");
             Serial.println("Failed to connect to WiFi");
             return false;
-        }
-    }
-
-    Serial.println("");
-
-    if (config::wifi_ip != "0.0.0.0"){
-        if (!WiFi.config(wifi_ip, wifi_gateway, wifi_subnet, wifi_dns, wifi_dns2)){
-            Serial.println("Failed to configure Static IP");
-        } else {
-            Serial.println("Static IP configured!");
         }
     }
 
