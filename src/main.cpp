@@ -192,23 +192,28 @@ void task_opengrill(void* pvParameters) {
 
     while (true){
 
-        // if(opengrill_server != config::opengrill_server){
-        //     Serial.println("(Re)loaded Opengrill Settings");
-        //     // Settings have changed. We have to update our vars and set a new client
-        //     // This can also be used for launching since we initialize empty vars - also i'm lazy
-        //     opengrill_server = config::opengrill_server;
-        //     opengrill_port = config::opengrill_port;
+        if(opengrill_server != config::opengrill_server || opengrill_port != config::opengrill_port){
+            Serial.println("(Re)loaded Opengrill Settings");
+            // Settings have changed. We have to update our vars and set a new client
+            // This can also be used for launching since we initialize empty vars - also i'm lazy
+            opengrill_server = config::opengrill_server;
+            opengrill_port = config::opengrill_port;
 
-        //     config::opengrill_client.setup(opengrill_server, opengrill_port);
-        // }
+            config::opengrill_client.setup(opengrill_server, opengrill_port);
 
-        // // Only loop/reconnect if we have a broker filled in
-        // if(opengrill_server != ""){
-        //     config::opengrill_client.reconnect();
-        //     config::opengrill_client.loop();
-        // }
+            // Only loop/reconnect if we have a broker filled in
+            if(opengrill_server != ""){
+                Serial.println("Opengrill server set, initializing connection");
+                config::opengrill_client.reconnect();
+                config::opengrill_client.loop();
+            } else {
+                Serial.println("Opengrill server not set, skipping Opengrill connection");
+            }
+        }
 
-        // config::opengrill_client.publish_grill();
+        if(opengrill_server != ""){
+            config::opengrill_client.publish_grill();
+        }
 
         delay(1000);
     }

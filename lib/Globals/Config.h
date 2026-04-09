@@ -2,6 +2,7 @@
 
 // Forward declarations
 class GrillConfig;
+class Opengrill;
 class Mqtt;
 class Preferences;
 class JsonUtilities;
@@ -19,6 +20,7 @@ namespace config{
     extern Preferences settings_storage;
     extern GrillConfig config_helper;
     extern Mqtt        mqtt_client;
+    extern Opengrill   opengrill_client;
 
     // Grill settings
     extern String grill_name;
@@ -31,10 +33,18 @@ namespace config{
     extern bool   beep_on_ready;
     extern int    beep_volume;
     extern int    beep_degrees_before;
-    
+
     // Buffers
     extern int json_buffer_size;
     extern int mqtt_buffer_size;
+    extern int opengrill_buffer_size;
+
+    // Opengrill
+    extern String opengrill_topic;
+    extern String opengrill_server;
+    extern int    opengrill_port;
+    extern String opengrill_user;
+    extern String opengrill_password;
 
     // Mqtt
     extern String mqtt_broker;

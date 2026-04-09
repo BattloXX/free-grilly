@@ -23,9 +23,9 @@ void JsonUtilities::load_json_status(char *buffer){
     jsondoc["wifi_ip"]            = config::wifi_ip;
     jsondoc["wifi_signal"]        = WiFi.RSSI();
     jsondoc["temperature_unit"]   = config::temperature_unit;
-    
+
     JsonArray probeData = jsondoc["probes"].to<JsonArray>();
-    
+
     JsonObject probeData_0 = probeData.add<JsonObject>();
     probeData_0["probe_id"] = 1;
     probeData_0["name"] = grill::probe_1.name;
@@ -33,7 +33,7 @@ void JsonUtilities::load_json_status(char *buffer){
     probeData_0["minimum_temperature"] = grill::probe_1.minimum_temperature;
     probeData_0["target_temperature"] = grill::probe_1.target_temperature;
     probeData_0["connected"] = grill::probe_1.connected;
-    
+
     JsonObject probeData_1 = probeData.add<JsonObject>();
     probeData_1["probe_id"] = 2;
     probeData_1["name"] = grill::probe_2.name;
@@ -41,7 +41,7 @@ void JsonUtilities::load_json_status(char *buffer){
     probeData_1["minimum_temperature"] = grill::probe_2.minimum_temperature;
     probeData_1["target_temperature"] = grill::probe_2.target_temperature;
     probeData_1["connected"] = grill::probe_2.connected;
-    
+
     JsonObject probeData_2 = probeData.add<JsonObject>();
     probeData_2["probe_id"] = 3;
     probeData_2["name"] = grill::probe_3.name;
@@ -49,7 +49,7 @@ void JsonUtilities::load_json_status(char *buffer){
     probeData_2["minimum_temperature"] = grill::probe_3.minimum_temperature;
     probeData_2["target_temperature"] = grill::probe_3.target_temperature;
     probeData_2["connected"] = grill::probe_3.connected;
-    
+
     JsonObject probeData_3 = probeData.add<JsonObject>();
     probeData_3["probe_id"] = 4;
     probeData_3["name"] = grill::probe_4.name;
@@ -57,7 +57,7 @@ void JsonUtilities::load_json_status(char *buffer){
     probeData_3["minimum_temperature"] = grill::probe_4.minimum_temperature;
     probeData_3["target_temperature"] = grill::probe_4.target_temperature;
     probeData_3["connected"] = grill::probe_4.connected;
-    
+
     JsonObject probeData_4 = probeData.add<JsonObject>();
     probeData_4["probe_id"] = 5;
     probeData_4["name"] = grill::probe_5.name;
@@ -65,7 +65,7 @@ void JsonUtilities::load_json_status(char *buffer){
     probeData_4["minimum_temperature"] = grill::probe_5.minimum_temperature;
     probeData_4["target_temperature"] = grill::probe_5.target_temperature;
     probeData_4["connected"] = grill::probe_5.connected;
-    
+
     JsonObject probeData_5 = probeData.add<JsonObject>();
     probeData_5["probe_id"] = 6;
     probeData_5["name"] = grill::probe_6.name;
@@ -73,7 +73,7 @@ void JsonUtilities::load_json_status(char *buffer){
     probeData_5["minimum_temperature"] = grill::probe_6.minimum_temperature;
     probeData_5["target_temperature"] = grill::probe_6.target_temperature;
     probeData_5["connected"] = grill::probe_6.connected;
-    
+
     JsonObject probeData_6 = probeData.add<JsonObject>();
     probeData_6["probe_id"] = 7;
     probeData_6["name"] = grill::probe_7.name;
@@ -81,7 +81,7 @@ void JsonUtilities::load_json_status(char *buffer){
     probeData_6["minimum_temperature"] = grill::probe_7.minimum_temperature;
     probeData_6["target_temperature"] = grill::probe_7.target_temperature;
     probeData_6["connected"] = grill::probe_7.connected;
-    
+
     JsonObject probeData_7 = probeData.add<JsonObject>();
     probeData_7["probe_id"] = 8;
     probeData_7["name"] = grill::probe_8.name;
@@ -101,7 +101,7 @@ void JsonUtilities::load_json_settings(char* buffer){
     jsondoc["name"]                      = config::grill_name;
     jsondoc["uuid"]                      = config::grill_uuid;
     jsondoc["firmware_version"]          = config::grill_firmware_version;
-    
+
     jsondoc["temperature_unit"]          = config::temperature_unit;
     jsondoc["beep_enabled"]              = config::beep_enabled;
     jsondoc["beep_volume"]               = config::beep_volume;
@@ -113,26 +113,28 @@ void JsonUtilities::load_json_settings(char* buffer){
     jsondoc["screen_timeout_minutes"]    = config::screen_timeout_minutes;
     jsondoc["backlight_timeout_minutes"] = config::backlight_timeout_minutes;
     jsondoc["backlight_brightness"]      = config::backlight_brightness;
-    
+
+    jsondoc["opengrill_server"]          = config::opengrill_server;
+
     jsondoc["mqtt_broker"]               = config::mqtt_broker;
     jsondoc["mqtt_port"]                 = config::mqtt_port;
     jsondoc["mqtt_topic"]                = config::mqtt_topic;
     jsondoc["mqtt_user"]                 = config::mqtt_user;
     jsondoc["mqtt_password"]             = config::mqtt_password;
-    
+
     jsondoc["wifi_ssid"]                 = config::wifi_ssid;
     jsondoc["wifi_ip"]                   = config::wifi_ip;
     jsondoc["wifi_subnet"]               = config::wifi_subnet;
     jsondoc["wifi_gateway"]              = config::wifi_gateway;
     jsondoc["wifi_dns"]                  = config::wifi_dns;
     jsondoc["wifi_password"]             = config::wifi_password;
-    
+
     jsondoc["local_ap_ssid"]             = config::local_ap_ssid;
     jsondoc["local_ap_ip"]               = config::local_ap_ip;
     jsondoc["local_ap_subnet"]           = config::local_ap_subnet;
     jsondoc["local_ap_gateway"]          = config::local_ap_gateway;
     jsondoc["local_ap_password"]         = config::local_ap_password;
-    
+
     jsondoc.shrinkToFit();
 
     serializeJson(jsondoc, buffer, config::json_buffer_size);
@@ -172,6 +174,8 @@ jsonResult JsonUtilities::save_json_settings(char* raw_json){
     config::backlight_timeout_minutes = json_data["backlight_timeout_minutes"];
     config::backlight_brightness      = json_data["backlight_brightness"];
 
+    config::opengrill_server          = json_data["opengrill_server"].as<String>();
+
     config::mqtt_broker               = json_data["mqtt_broker"].as<String>();
     config::mqtt_port                 = json_data["mqtt_port"];
     config::mqtt_topic                = json_data["mqtt_topic"].as<String>();
@@ -184,7 +188,7 @@ jsonResult JsonUtilities::save_json_settings(char* raw_json){
     config::wifi_subnet               = json_data["wifi_subnet"].as<String>();
     config::wifi_gateway              = json_data["wifi_gateway"].as<String>();
     config::wifi_dns                  = json_data["wifi_dns"].as<String>();
-    
+
     config::local_ap_ssid             = json_data["local_ap_ssid"].as<String>();
     config::local_ap_password         = json_data["local_ap_password"].as<String>();
     config::local_ap_ip               = json_data["local_ap_ip"].as<String>();
@@ -197,7 +201,7 @@ jsonResult JsonUtilities::save_json_settings(char* raw_json){
     }
 
     config::config_helper.save_settings();
-    return {true, "Ok"}; 
+    return {true, "Ok"};
 }
 
 void JsonUtilities::load_json_probes(char* buffer){
@@ -300,7 +304,7 @@ void JsonUtilities::load_json_probes(char* buffer){
     doc_7["reference_beta"] = grill::probe_8.reference_beta;
 
     jsondoc.shrinkToFit();
-    serializeJson(jsondoc, buffer, config::json_buffer_size); 
+    serializeJson(jsondoc, buffer, config::json_buffer_size);
 }
 
 jsonResult JsonUtilities::save_json_probes(char* raw_json){
@@ -367,7 +371,7 @@ jsonResult JsonUtilities::save_json_probes(char* raw_json){
 
     config::config_helper.save_probes();
 
-    return {true, "Ok"}; 
+    return {true, "Ok"};
 }
 
 void JsonUtilities::load_json_wifiscan(char* buffer){
@@ -387,7 +391,7 @@ void JsonUtilities::load_json_wifiscan(char* buffer){
     for (int network_nr = 0; network_nr < scanned_networks; ++network_nr) {
 
         JsonObject scanned_network = networks.add<JsonObject>();
-        
+
         scanned_network["ssid"]            = WiFi.SSID(network_nr).c_str();
         scanned_network["signal_strength"] = WiFi.RSSI(network_nr);
 
@@ -408,6 +412,6 @@ void JsonUtilities::load_json_wifiscan(char* buffer){
     WiFi.scanDelete();
 
     jsondoc.shrinkToFit();
-    
+
     serializeJson(jsondoc, buffer, config::json_buffer_size);
 }

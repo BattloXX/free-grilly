@@ -6,19 +6,20 @@
 #include "Probe.h"
 #include "Buzzer.h"
 #include "Mqtt.h"
+#include "Opengrill.h"
 #include "GrillConfig.h"
 
 namespace gpio{
 
     int power_button           = 35;
-    
+
     // enable/disable power
     int power_probes           = 27;
     int power_screen_backlight =  4;
     int power_adc_circuit      = 13;
 
     int buzzer                 = 32;
-    
+
     int battery_i2c_sda        = 21;
     int battery_i2c_scl        = 22;
 
@@ -31,11 +32,11 @@ namespace gpio{
     int mux_selector_c         = 26;
 
     int pwm_screen_channel     = 1;
-    int pwm_screen_frequency   = 5000;  
+    int pwm_screen_frequency   = 5000;
     int pwm_screen_resolution  = 8;
 
     int pwm_buzzer_channel     = 2;
-    int pwm_buzzer_frequency   = 100;  
+    int pwm_buzzer_frequency   = 100;
     int pwm_buzzer_resolution  = 8;
 }
 
@@ -77,11 +78,12 @@ namespace config{
 
     int json_buffer_size                = 3000;
     int mqtt_buffer_size                = 3000;
+    int opengrill_buffer_size           = 3000;
 
     // ***********************************
     // * Mqtt
     // ***********************************
-    
+
     WiFiClient WifiClient;
     Mqtt mqtt_client                    = Mqtt(WifiClient);
 
@@ -90,7 +92,19 @@ namespace config{
     String mqtt_topic                   = "free-grilly";
     String mqtt_user                    = "";
     String mqtt_password                = "";
-    
+
+    // ***********************************
+    // * Opengrill
+    // ***********************************
+    WiFiClient OpengrillWifiClient;
+    Opengrill opengrill_client          = Opengrill(OpengrillWifiClient);
+
+    String opengrill_topic              = "opengrill/v1";
+    String opengrill_server             = "";
+    int    opengrill_port               = 1883;
+    String opengrill_user               = "";
+    String opengrill_password           = "";
+
     // ***********************************
     // * Json Utilities
     // ***********************************
@@ -151,7 +165,7 @@ namespace config{
 }
 
 namespace grill{
-    
+
     // ***********************************
     // * Wifi
     // ***********************************
@@ -171,7 +185,7 @@ namespace grill{
     // * Buzzer
     // ***********************************
 
-    Buzzer buzzer;    
+    Buzzer buzzer;
 
     // ***********************************
     // * Probes
@@ -191,7 +205,7 @@ namespace web{
     // ***********************************
     // * Api / Webserver
     // ***********************************
-    
+
     WebServer webserver(80);
 }
 
@@ -199,15 +213,17 @@ namespace task{
     TaskHandle_t alarmTask;
     TaskHandle_t batteryTask;
     TaskHandle_t mqttTask;
+    TaskHandle_t opengrillTask;
     TaskHandle_t powerbuttonTask;
     TaskHandle_t probesTask;
     TaskHandle_t screenTask;
     TaskHandle_t webserverTask;
     TaskHandle_t stackmonitorTask;
-    
+
     int alarmStackSize        = 1000;
     int batteryStackSize      = 2000;
     int mqttStackSize         = 8000;
+    int opengrillStackSize    = 8000;
     int powerbuttonStackSize  = 10000; //Needed to be able to handle factory reset
     int probesStackSize       = 1000;
     int screenStackSize       = 3000;

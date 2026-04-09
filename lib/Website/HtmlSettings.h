@@ -585,4 +585,5 @@ const char HTML_SETTINGS[] = R"=====(
     </script>
   </body>
 </html>
+
 )=====";
