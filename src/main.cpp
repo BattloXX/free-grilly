@@ -12,7 +12,7 @@
 #include "JsonUtilities.h"
 #include "Mqtt.h"
 #include "Network.h"
-#include "OpenGrill.h"
+#include "Opengrill.h"
 #include "Power.h"
 #include "Preferences.h"
 #include "Website.h"
