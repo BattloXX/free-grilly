@@ -5,9 +5,9 @@ const char HTML_SETTINGS[] = R"=====(
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Free Grilly</title>
-        
+
         <link rel="stylesheet" type="text/css" href="custom-boostrap.min.css">
-        
+
         <link rel="icon" href="data:,">
     </head>
   <body>
@@ -46,8 +46,8 @@ const char HTML_SETTINGS[] = R"=====(
                 </div>
             </div>
         </div>
-        
-        
+
+
         <div class="row mt-2">
             <h5>Grill</h5>
         </div>
@@ -75,8 +75,8 @@ const char HTML_SETTINGS[] = R"=====(
                 </div>
             </div>
         </div>
-        
-        
+
+
         <div class="row mt-4">
             <h5>Sound</h5>
         </div>
@@ -85,7 +85,7 @@ const char HTML_SETTINGS[] = R"=====(
                 <label for="beep_enabled" class="col-sm-2 col-form-label">Beep enabled</label>
                 <div class="col-sm-10">
                     <div class="form-check form-switch mt-2">
-                        <input id="beep_enabled" class="form-check-input" type="checkbox">  
+                        <input id="beep_enabled" class="form-check-input" type="checkbox">
                     </div>
                 </div>
             </div>
@@ -121,7 +121,7 @@ const char HTML_SETTINGS[] = R"=====(
                 <div class="col-sm-10">
                     <div class="form-check form-switch mt-2">
                         Beep when outside the target temperature
-                        <input id="beep_outside_target" class="form-check-input" type="checkbox">  
+                        <input id="beep_outside_target" class="form-check-input" type="checkbox">
                     </div>
                 </div>
             </div>
@@ -130,20 +130,12 @@ const char HTML_SETTINGS[] = R"=====(
                 <label for="beep_on_ready" class="col-sm-2 col-form-label">Beep when ready</label>
                 <div class="col-sm-10">
                     <div class="form-check form-switch mt-2">
-                        <input id="beep_on_ready" class="form-check-input" type="checkbox">  
-                    </div>
-                </div>
-            </div>
-            <div class="row mt-2">
-                <label for="cucaracha_enabled" class="col-sm-2 col-form-label">La Cucaracha</label>
-                <div class="col-sm-10">
-                    <div class="form-check form-switch mt-2">
-                        <input id="cucaracha_enabled" class="form-check-input" type="checkbox">  
+                        <input id="beep_on_ready" class="form-check-input" type="checkbox">
                     </div>
                 </div>
             </div>
         </div>
-        
+
         <div class="row mt-4">
             <h5>Screen</h5>
         </div>
@@ -188,7 +180,7 @@ const char HTML_SETTINGS[] = R"=====(
             </div>
 
         </div>
-        
+
         <div class="row mt-4">
             <h5>Wifi</h5>
         </div>
@@ -198,7 +190,7 @@ const char HTML_SETTINGS[] = R"=====(
                 <input type="text" class="form-control" id="wifi_ssid">
             </div>
         </div>
-        
+
         <div class="row mt-2">
             <label for="wifi_password" class="col-sm-2 col-form-label"></label>
             <div class="col-8 col-sm-6">
@@ -226,14 +218,14 @@ const char HTML_SETTINGS[] = R"=====(
                 <input type="text" class="form-control" id="wifi_ip">
             </div>
         </div>
-        
+
         <div class="row mt-2">
             <label for="wifi_subnet" class="col-sm-2 col-form-label">Wifi subnet</label>
             <div class="col-sm-10">
                 <input type="text" class="form-control" id="wifi_subnet">
             </div>
         </div>
-        
+
         <div class="row mt-2">
             <label for="wifi_gateway" class="col-sm-2 col-form-label">Wifi gateway</label>
             <div class="col-sm-10">
@@ -247,7 +239,7 @@ const char HTML_SETTINGS[] = R"=====(
                 <input type="text" class="form-control" id="wifi_dns">
             </div>
         </div>
-        
+
 
         <div class="row mt-4">
             <h5>Local AP</h5>
@@ -258,7 +250,7 @@ const char HTML_SETTINGS[] = R"=====(
                 <input type="text" class="form-control" id="local_ap_ssid">
             </div>
         </div>
-        
+
         <div class="row mt-2">
             <label for="local_ap_password" class="col-sm-2 col-form-label">Local AP password</label>
             <div class="col-sm-10">
@@ -272,14 +264,14 @@ const char HTML_SETTINGS[] = R"=====(
                 <input type="text" class="form-control" id="local_ap_ip">
             </div>
         </div>
-        
+
         <div class="row mt-2">
             <label for="local_ap_subnet" class="col-sm-2 col-form-label">Local AP subnet</label>
             <div class="col-sm-10">
                 <input type="text" class="form-control" id="local_ap_subnet">
             </div>
         </div>
-        
+
         <div class="row mt-2">
             <label for="local_ap_gateway" class="col-sm-2 col-form-label">Local AP gateway</label>
             <div class="col-sm-10">
@@ -287,6 +279,16 @@ const char HTML_SETTINGS[] = R"=====(
             </div>
         </div>
 
+
+        <div class="row mt-4">
+            <h5>Opengrill</h5>
+        </div>
+        <div class="row mt-2">
+            <label for="opengrill_server" class="col-sm-2 col-form-label">Opengrill server</label>
+            <div class="col-sm-10">
+                <input type="text" class="form-control" id="opengrill_server">
+            </div>
+        </div>
 
         <div class="row mt-4">
             <h5>MQTT</h5>
@@ -299,7 +301,7 @@ const char HTML_SETTINGS[] = R"=====(
                     <dd class="font-monospace"><small><span class="prefix">prefix</span>/<span class="uuid">uuid</span>/probes</small></dd>
                     <dd class="font-monospace"><small><span class="prefix">prefix</span>/<span class="uuid">uuid</span>/settings</small></dd>
                     <dd class="font-monospace"><small><span class="prefix">prefix</span>/<span class="uuid">uuid</span>/# (wildcard that receives all messages)</small></dd>
-                
+
                 <dt>Topics free-grilly subscribes to</dt>
                     <dd class="font-monospace"><small><span class="prefix">prefix</span>/<span class="uuid">uuid</span>/config/probes</small></dd>
                     <dd class="font-monospace"><small><span class="prefix">prefix</span>/<span class="uuid">uuid</span>/config/settings</small></dd>
@@ -316,19 +318,19 @@ const char HTML_SETTINGS[] = R"=====(
             </div>
         </div>
         <div class="row mt-2">
-            <label for="local_ap_gateway" class="col-sm-2 col-form-label">Mqtt topic</label>
+            <label for="mqtt_topic" class="col-sm-2 col-form-label">Mqtt topic</label>
             <div class="col-sm-10">
                 <input type="text" class="form-control" id="mqtt_topic">
             </div>
         </div>
         <div class="row mt-2">
-            <label for="local_ap_gateway" class="col-sm-2 col-form-label">Mqtt username</label>
+            <label for="mqtt_user" class="col-sm-2 col-form-label">Mqtt username</label>
             <div class="col-sm-10">
                 <input type="text" class="form-control" id="mqtt_user">
             </div>
         </div>
         <div class="row mt-2">
-            <label for="local_ap_gateway" class="col-sm-2 col-form-label">Mqtt password</label>
+            <label for="mqtt_password" class="col-sm-2 col-form-label">Mqtt password</label>
             <div class="col-sm-10">
                 <input type="text" class="form-control" id="mqtt_password">
             </div>
@@ -348,43 +350,43 @@ const char HTML_SETTINGS[] = R"=====(
 
         //Only used during tests, the real implementation uses relative urls
         const base_url = "";
-         
+
         e_grill_name                = document.getElementById("grill_name");
-        
+
         e_temperature_unit          = document.getElementById("temperature_unit");
-        
+
         e_beep_enabled              = document.getElementById("beep_enabled");
         e_beep_volume               = document.getElementById("beep_volume");
         e_beep_degrees_before       = document.getElementById("beep_degrees_before");
         e_beep_outside_target       = document.getElementById("beep_outside_target");
         e_beep_on_ready             = document.getElementById("beep_on_ready");
-        e_cucaracha_enabled         = document.getElementById("cucaracha_enabled");
         e_screen_timeout_minutes    = document.getElementById("screen_timeout_minutes");
         e_backlight_timeout_minutes = document.getElementById("backlight_timeout_minutes");
         e_backlight_brightness      = document.getElementById("backlight_brightness");
-        
+
         e_wifi_scan_results         = document.getElementById("wifi_scan_results");
-        
+
         e_wifi_ssid                 = document.getElementById("wifi_ssid");
         e_wifi_password             = document.getElementById("wifi_password");
         e_wifi_ip                   = document.getElementById("wifi_ip");
         e_wifi_subnet               = document.getElementById("wifi_subnet");
         e_wifi_gateway              = document.getElementById("wifi_gateway");
         e_wifi_dns                  = document.getElementById("wifi_dns");
-        
+
         e_local_ap_ssid             = document.getElementById("local_ap_ssid");
         e_local_ap_password         = document.getElementById("local_ap_password");
         e_local_ap_ip               = document.getElementById("local_ap_ip");
         e_local_ap_subnet           = document.getElementById("local_ap_subnet");
         e_local_ap_gateway          = document.getElementById("local_ap_gateway");
-        
-        
+
+        e_opengrill_server          = document.getElementById("opengrill_server");
+
         e_mqtt_broker               = document.getElementById("mqtt_broker");
         e_mqtt_port                 = document.getElementById("mqtt_port");
         e_mqtt_topic                = document.getElementById("mqtt_topic");
         e_mqtt_user                 = document.getElementById("mqtt_user");
         e_mqtt_password             = document.getElementById("mqtt_password");
-        
+
         e_save_settings             = document.getElementById("save_settings");
         e_wifi_scan                 = document.getElementById("wifi_scan");
 
@@ -400,17 +402,16 @@ const char HTML_SETTINGS[] = R"=====(
                 data = await response.json();
 
                 console.log(data);
-                
+
                 e_grill_name.value                = data['name'];
 
                 e_temperature_unit.value          = data['temperature_unit'];
-                
+
                 e_beep_enabled.checked            = data['beep_enabled'];
                 e_beep_volume.value               = data['beep_volume'];
                 e_beep_degrees_before.value       = data['beep_degrees_before'];
                 e_beep_outside_target.checked     = data['beep_outside_target'];
                 e_beep_on_ready.checked           = data['beep_on_ready'];
-                e_cucaracha_enabled.checked       = data['cucaracha_enabled'];
 
                 e_screen_timeout_minutes.value    = data['screen_timeout_minutes'];
                 e_backlight_timeout_minutes.value = data['backlight_timeout_minutes'];
@@ -422,13 +423,15 @@ const char HTML_SETTINGS[] = R"=====(
                 e_wifi_subnet.value               = data['wifi_subnet'];
                 e_wifi_gateway.value              = data['wifi_gateway'];
                 e_wifi_dns.value                  = data['wifi_dns'];
-                
+
                 e_local_ap_ssid.value             = data['local_ap_ssid'];
                 e_local_ap_password.value         = data['local_ap_password'];
                 e_local_ap_ip.value               = data['local_ap_ip'];
                 e_local_ap_subnet.value           = data['local_ap_subnet'];
                 e_local_ap_gateway.value          = data['local_ap_gateway'];
-                
+
+                e_opengrill_server.value          = data['opengrill_server'];
+
                 e_mqtt_broker.value               = data['mqtt_broker'];
                 e_mqtt_port.value                 = data['mqtt_port'];
                 e_mqtt_topic.value                = data['mqtt_topic'];
@@ -453,7 +456,7 @@ const char HTML_SETTINGS[] = R"=====(
         }
 
         async function scanNetworks() {
-            
+
             e_wifi_scan.textContent = "Scanning...";
             e_wifi_scan.disabled = true;
             e_wifi_scan_results.disabled = true;
@@ -471,7 +474,7 @@ const char HTML_SETTINGS[] = R"=====(
                     option.innerHTML = scanned_network['ssid'] + " :: " + scanned_network['auth_method'] + " :: " + scanned_network['signal_strength'];
                     e_wifi_scan_results.appendChild(option);
                 });
-                
+
                 e_wifi_scan.textContent = "Scan done!";
                 e_wifi_scan.disabled = false;
                 e_wifi_scan_results.disabled = false;
@@ -481,15 +484,15 @@ const char HTML_SETTINGS[] = R"=====(
                 console.error('Grill is unreachable:', error);
             }
         }
-        
+
         async function postSettings() {
             try {
                 e_save_settings.disabled = true;
-                
+
                 e_probes = document.querySelectorAll('[data-probe]');
 
                 post_data = {};
-    
+
                 post_data["name"]                      = e_grill_name.value;
                 post_data["temperature_unit"]          = e_temperature_unit.value;
                 post_data["beep_enabled"]              = e_beep_enabled.checked;
@@ -497,8 +500,6 @@ const char HTML_SETTINGS[] = R"=====(
                 post_data["beep_degrees_before"]       = e_beep_degrees_before.value;
                 post_data["beep_outside_target"]       = e_beep_outside_target.checked;
                 post_data["beep_on_ready"]             = e_beep_on_ready.checked;
-                post_data["cucaracha_enabled"]         = e_cucaracha_enabled.checked;
-                
                 post_data['screen_timeout_minutes']    = e_screen_timeout_minutes.value;
                 post_data['backlight_timeout_minutes'] = e_backlight_timeout_minutes.value;
                 post_data['backlight_brightness']      = e_backlight_brightness.value;
@@ -509,11 +510,15 @@ const char HTML_SETTINGS[] = R"=====(
                 post_data["wifi_subnet"]               = e_wifi_subnet.value;
                 post_data["wifi_gateway"]              = e_wifi_gateway.value;
                 post_data["wifi_dns"]                  = e_wifi_dns.value;
+
                 post_data["local_ap_ssid"]             = e_local_ap_ssid.value;
                 post_data["local_ap_password"]         = e_local_ap_password.value;
                 post_data["local_ap_ip"]               = e_local_ap_ip.value;
                 post_data["local_ap_subnet"]           = e_local_ap_subnet.value;
                 post_data["local_ap_gateway"]          = e_local_ap_gateway.value;
+
+                post_data["opengrill_server"]          = e_opengrill_server.value;
+
                 post_data["mqtt_broker"]               = e_mqtt_broker.value;
                 post_data["mqtt_port"]                 = e_mqtt_port.value;
                 post_data["mqtt_topic"]                = e_mqtt_topic.value;
@@ -534,10 +539,10 @@ const char HTML_SETTINGS[] = R"=====(
                 e_alert.classList.add("alert-success");
                 e_alert_text.textContent = "Settings have been saved successfully";
                 e_alert.style.display = 'block';
-                
+
                 // Load settings
                 getSettings();
-                
+
             } catch (error) {
                 e_alert.classList.add("alert-danger");
                 e_alert.classList.remove("alert-success");
@@ -568,7 +573,7 @@ const char HTML_SETTINGS[] = R"=====(
 
         e_wifi_scan_results.addEventListener('change', (event) => {
             result = e_wifi_scan_results.value
-            
+
             if(result == "manual"){
                 e_wifi_ssid.disabled = false;
             } else {

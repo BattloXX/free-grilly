@@ -85,7 +85,7 @@ components:
           type: string
           description: The temperature_unit that is used
           example: celcius
-          default: celcius    
+          default: celcius
           enum:
             - celcius
             - fahrenheit
@@ -104,13 +104,13 @@ components:
                 example: Probe 1
                 description: The probe name
               temperature:
-                type: 
+                type:
                   - "number"
                   - "null"
                 format: float
                 description: The temperature in Celcius/Fahrenheit
               minimum_temperature:
-                type: 
+                type:
                   - "number"
                   - "null"
                 format: float
@@ -119,7 +119,7 @@ components:
                   - 30.00
                   - 25.5
               target_temperature:
-                type: 
+                type:
                   - "number"
                   - "null"
                 format: float
@@ -137,7 +137,7 @@ components:
               minimum_temperature: null
               target_temperature: 23.71832
               connected: true
-    
+
     Probe:
       type: object
       properties:
@@ -155,13 +155,13 @@ components:
             - 8
         name:
           type: string
-          examples: 
+          examples:
             - Probe 1
             - Ambient Probe
             - Pork shoulder
           description: The probe name
         temperature:
-          type: 
+          type:
             - "number"
             - "null"
           format: float
@@ -172,7 +172,7 @@ components:
             - 27.101
             - 150.33
         minimum_temperature:
-          type: 
+          type:
             - "number"
             - "null"
           format: float
@@ -182,7 +182,7 @@ components:
             - 25.50
             - 120
         target_temperature:
-          type: 
+          type:
             - "number"
             - "null"
           format: float
@@ -198,11 +198,11 @@ components:
         probe_type:
           type: string
           description: >
-            The probe type connected to the grilleye. There are several built-in probe types. If 
-            you have the spec sheet of your probe you can try and setup a custom probe and provide 
+            The probe type connected to the grilleye. There are several built-in probe types. If
+            you have the spec sheet of your probe you can try and setup a custom probe and provide
             the values. Not all probes will work so YMMV.
           example: grilleye_iris
-          default: grilleye_iris    
+          default: grilleye_iris
           enum:
             - custom
             - grilleye_iris
@@ -210,7 +210,7 @@ components:
             - maverick_et733
             - weber_igrill
         reference_kohm:
-          type: 
+          type:
             - "number"
             - "null"
           format: float
@@ -218,7 +218,7 @@ components:
           default: 100
           description: The reference resistance value from the spec sheet in kOhm - only used with type CUSTOM
         reference_celcius:
-          type: 
+          type:
             - "number"
             - "null"
           format: float
@@ -226,17 +226,17 @@ components:
           default: 25
           description: The reference celcius value from the spec sheet - only used with type CUSTOM
         reference_beta:
-          type: 
+          type:
             - "number"
             - "null"
           format: float
-          examples: 
+          examples:
             - 4250
             - null
           default: 4250
           description: The reference beta coefficient value from the spec sheet - only used with type CUSTOM
-        
-    
+
+
     Wifinetwork:
       type: object
       properties:
@@ -251,7 +251,7 @@ components:
         auth_method:
           type: string
           description: The authentication method that is used by the wifi network
-          example: wpa2_psk   
+          example: wpa2_psk
           enum:
             - open
             - wep
@@ -263,7 +263,7 @@ components:
             - wpa2_wpa3_psk
             - wpapi_psk
             - unknown
-    
+
     Settings:
       type: object
       properties:
@@ -286,7 +286,7 @@ components:
           type: string
           description: The temperature_unit that is used
           example: celcius
-          default: celcius    
+          default: celcius
           enum:
             - celcius
             - fahrenheit
@@ -325,6 +325,9 @@ components:
           default: 5
           minimum: 0
           maximum: 5
+        opengrill_server:
+          type: string
+          example: "opengrill.test.com"
         mqtt_broker:
           type: string
           example: "broker.test.com"
@@ -392,7 +395,7 @@ paths:
         - grill
       summary: Current grill info and probes
       description: >
-        Get the current needed basic grill information + all the probes and 
+        Get the current needed basic grill information + all the probes and
         their temperatures
       responses:
         '200':
@@ -401,7 +404,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Grill'
-  
+
   /probes:
     get:
       tags:
@@ -450,7 +453,7 @@ paths:
                   $ref: '#/components/schemas/Probe'
         '400':
           $ref: '#/components/responses/400'
-  
+
   /settings:
     get:
       tags:
@@ -487,7 +490,7 @@ paths:
                 $ref: '#/components/schemas/Settings'
         '400':
           $ref: '#/components/responses/400'
-    
+
   /wifiscan:
     get:
       tags:
