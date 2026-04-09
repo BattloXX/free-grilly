@@ -12,6 +12,7 @@
 #include "JsonUtilities.h"
 #include "Mqtt.h"
 #include "Network.h"
+#include "OpenGrill.h"
 #include "Power.h"
 #include "Preferences.h"
 #include "Website.h"
@@ -26,6 +27,7 @@
 // Task functions
 void task_alarm(void* pvParameters);
 void task_battery(void* pvParameters);
+void task_opengrill(void* pvParameters);
 void task_mqtt(void* pvParameters);
 void task_powerbutton(void* pvParameters);
 void task_probes(void* pvParameters);
@@ -34,14 +36,14 @@ void task_webserver(void* pvParameters);
 void task_stackmonitor(void* pvParameters);
 
 void setup() {
-    
+
     // ***********************************
     // * Serial
     // ***********************************
-    
+
     Serial.begin(115200); // Initialize serial communication at 115200 bits per second
     // delay(5000);          // Give serial monitor time to catch up
-    
+
     // ***********************************
     // * Load nvram settings and init
     // ***********************************
@@ -52,15 +54,15 @@ void setup() {
     // ***********************************
     // * Power button bootup
     // ***********************************
-    
+
     //* Power button pin is set here so that we can use it to check for boot
     pinMode(gpio::power_button, INPUT);
-    
+
     unsigned long millis_pressed        = 0;
     unsigned long millis_button_start   = 0;
 
     int bootup_press_time   = config::press_seconds_startup * 1000;
-    
+
     if(digitalRead(gpio::power_button) == LOW){
         millis_button_start = millis();
     }
@@ -74,15 +76,15 @@ void setup() {
             break;
         }
     }
-    
+
     if(millis_pressed < bootup_press_time){
-        power.shutdown();
+        // power.shutdown();
     }
 
     // ***********************************
     // * Startup Buzzer
     // ***********************************
-    
+
     grill::buzzer.beep(2, 100);
 
     // ***********************************
@@ -92,14 +94,14 @@ void setup() {
     SPISettings spiSettings(config::hspi_probes_clockspeed, MSBFIRST, SPI_MODE0);
     SPI.begin(gpio::hspi_probes_sclk, gpio::hspi_probes_miso, -1, gpio::hspi_probes_cs);
     SPI.beginTransaction(spiSettings);
-    
+
     pinMode(gpio::hspi_probes_cs, OUTPUT); // Prep CS line for data reading
 
     // ***********************************
     // * NTP
     // ***********************************
 
-    // configTzTime(get_timezone_code(timezone).c_str(), 
+    // configTzTime(get_timezone_code(timezone).c_str(),
     //     ntp_server_1.c_str(),
     //     ntp_server_2.c_str(),
     //     ntp_server_3.c_str()
@@ -145,6 +147,7 @@ void setup() {
     // ***********************************
     xTaskCreatePinnedToCore(task_webserver, "Webserver", task::webserverStackSize, NULL, 1, &task::webserverTask, 1);
     xTaskCreatePinnedToCore(task_mqtt, "Mqtt", task::mqttStackSize, NULL, 1, &task::mqttTask, 1);
+    xTaskCreatePinnedToCore(task_opengrill, "Opengrill", task::opengrillStackSize, NULL, 1, &task::opengrillTask, 1);
     // xTaskCreatePinnedToCore(task_stackmonitor, "StackMonitor", task::stackmonitorStackSize, NULL, 1, &task::stackmonitorTask, 1);
 }
 
@@ -159,7 +162,7 @@ void setup() {
 void task_webserver(void* pvParameters) {
     Serial.println("Launching task :: WEBSERVER / API");
     delay(5);   //Give FreeRtos a chance to properly schedule the task
-    
+
     setup_api_routes();
     setup_web_routes();
 
@@ -177,6 +180,41 @@ void task_webserver(void* pvParameters) {
 }
 
 // ***********************************
+// * Opengrill
+// ***********************************
+
+void task_opengrill(void* pvParameters) {
+    Serial.println("Launching task :: Opengrill");
+    delay(5);   //Give FreeRtos a chance to properly schedule the task
+
+    String opengrill_server = "";
+    int opengrill_port = 1883;
+
+    while (true){
+
+        // if(opengrill_server != config::opengrill_server){
+        //     Serial.println("(Re)loaded Opengrill Settings");
+        //     // Settings have changed. We have to update our vars and set a new client
+        //     // This can also be used for launching since we initialize empty vars - also i'm lazy
+        //     opengrill_server = config::opengrill_server;
+        //     opengrill_port = config::opengrill_port;
+
+        //     config::opengrill_client.setup(opengrill_server, opengrill_port);
+        // }
+
+        // // Only loop/reconnect if we have a broker filled in
+        // if(opengrill_server != ""){
+        //     config::opengrill_client.reconnect();
+        //     config::opengrill_client.loop();
+        // }
+
+        // config::opengrill_client.publish_grill();
+
+        delay(1000);
+    }
+}
+
+// ***********************************
 // * MQTT
 // ***********************************
 
@@ -188,25 +226,30 @@ void task_mqtt(void* pvParameters) {
     int mqtt_port = 1883;
 
     while (true){
-        
+
         if(mqtt_broker != config::mqtt_broker || mqtt_port != config::mqtt_port){
             Serial.println("(Re)loaded MQTT Settings");
             // Settings have changed. We have to update our vars and set a new client
             // This can also be used for launching since we initialize empty vars - also i'm lazy
             mqtt_broker = config::mqtt_broker;
             mqtt_port = config::mqtt_port;
-            
+
             config::mqtt_client.setup(mqtt_broker, mqtt_port);
+
+            // Only loop/reconnect if we have a broker filled in
+            if(mqtt_broker != ""){
+                Serial.println("MQTT broker set, initializing connection");
+                config::mqtt_client.reconnect();
+                config::mqtt_client.loop();
+            } else {
+                Serial.println("MQTT broker not set, skipping MQTT connection");
+            }
         }
 
-        // Only loop/reconnect if we have a broker filled in
         if(mqtt_broker != ""){
-            config::mqtt_client.reconnect();
-            config::mqtt_client.loop();
+            config::mqtt_client.publish_grill();
         }
 
-        config::mqtt_client.publish_grill();
-        
         delay(1000);
     }
 }
@@ -218,11 +261,11 @@ void task_mqtt(void* pvParameters) {
 void task_alarm(void* pvParameters) {
     Serial.println("Launching task :: Alarm");
     delay(5);   //Give FreeRtos a chance to properly schedule the task
-    
+
     int alarm_beep_todo = 0;  // The amount of beeps remaining when sounding the alarm
 
     while (true){
-        
+
         int alarm = 0;  // Counter for easy checks to see if there is an alarm
 
         //* Check for alarms
@@ -239,13 +282,13 @@ void task_alarm(void* pvParameters) {
         if(alarm > 0 && alarm_beep_todo == 0){
             alarm_beep_todo = config::alarm_beep_amount;
         }
-        
+
         //* Mute alarms if needed
         if(config::alarm_mute == true){
-            // When we need to mute we remove all needed alarms and wait 
+            // When we need to mute we remove all needed alarms and wait
             // for 2 seconds for the probes and other devices to catch up
             delay(2000);
-            
+
             alarm_beep_todo = 0;
             config::alarm_mute = false;
         }
@@ -269,7 +312,7 @@ void task_alarm(void* pvParameters) {
 void task_powerbutton(void* pvParameters) {
     Serial.println("Launching task :: POWER BUTTON");
     delay(5);   //Give FreeRtos a chance to properly schedule the task
-    
+
     // Reference timers
     unsigned long millis_pressed        = 0;
     unsigned long millis_current        = 0;
@@ -284,7 +327,7 @@ void task_powerbutton(void* pvParameters) {
     bool buzzed_short      = false;
     bool buzzed_medium     = false;
     bool buzzed_long       = false;
-    
+
     if(digitalRead(gpio::power_button) == LOW){
         millis_button_start = millis();
     }
@@ -317,7 +360,7 @@ void task_powerbutton(void* pvParameters) {
             buzzed_short      = false;
             buzzed_medium     = false;
             buzzed_long       = false;
-            
+
             millis_pressed = millis() - millis_button_start;
 
             // Serial.print("Button pressed for: ");
@@ -325,7 +368,7 @@ void task_powerbutton(void* pvParameters) {
 
             if(millis_pressed < short_press_time) {
                 Serial.println("Button pressed for less than 1 second");
-                
+
                 // Interrupts all running beeps
                 config::alarm_mute = true;
                 grill::buzzer.beep(1, 100);
@@ -343,7 +386,7 @@ void task_powerbutton(void* pvParameters) {
             else if (millis_pressed > long_press_time) {
                 Serial.println("Button pressed for more than 10 seconds");
                 config::config_helper.factory_reset();
-            }            
+            }
         }
 
         delay(100);
@@ -357,7 +400,7 @@ void task_powerbutton(void* pvParameters) {
 void task_probes(void* pvParameters) {
     Serial.println("Launching task :: PROBES");
     delay(5);   //Give FreeRtos a chance to properly schedule the task
-    
+
     pinMode(gpio::mux_selector_a, OUTPUT);
     pinMode(gpio::mux_selector_b, OUTPUT);
     pinMode(gpio::mux_selector_c, OUTPUT);
@@ -384,7 +427,7 @@ void task_probes(void* pvParameters) {
 void task_battery(void* pvParameters) {
     Serial.println("Launching task :: BATTERY");
     delay(5);   //Give FreeRtos a chance to properly schedule the task
-    
+
     battery.init();
     power.startup();
 
@@ -402,16 +445,16 @@ void task_battery(void* pvParameters) {
 void task_screen(void* pvParameters) {
     Serial.println("Launching task :: SCREEN");
     delay(5);   //Give FreeRtos a chance to properly schedule the task
-    
+
     //pinMode(gpio::power_screen_backlight, OUTPUT);
     //digitalWrite(gpio::power_screen_backlight, HIGH);
-    
+
     display.init();
 
     for (;;) {
         display.display_update();
         // Serial.println("screen update");
-    
+
         delay(1000);
     }
 }
@@ -423,16 +466,16 @@ void task_screen(void* pvParameters) {
 void task_stackmonitor(void* pvParameters) {
     Serial.println("Launching task :: STACK MONITOR");
     delay(5);   //Give FreeRtos a chance to properly schedule the task
-    
+
     float stack_free = 0;
     float stack_used = 0;
-    
+
     for (;;) {
          // The high water mark is the maximum value of stack that is still free
         // https://www.freertos.org/Why-FreeRTOS/FAQs/Memory-usage-boot-times-context#how-big-should-the-stack-be
 
         Serial.println("|++++++++++++++ STACK +++++++++++++++|");
-        
+
 
         stack_free = (float)uxTaskGetStackHighWaterMark(task::alarmTask);
         stack_used = task::alarmStackSize - stack_free;
@@ -468,7 +511,7 @@ void task_stackmonitor(void* pvParameters) {
         Serial.print(stack_used);
         Serial.print("/");
         Serial.println(task::probesStackSize);
-        
+
         stack_free = (float)uxTaskGetStackHighWaterMark(task::screenTask);
         stack_used = task::screenStackSize - stack_free;
         Serial.print("SCREEN stack used: ");
