@@ -271,7 +271,7 @@ void task_mqtt(void* pvParameters) {
             }
         }
 
-        delay(1000);
+        delay(50);
     }
 }
 
