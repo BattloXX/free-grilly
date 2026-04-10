@@ -130,15 +130,18 @@ void setup() {
     WiFi.onEvent(event_wifi_ip_acquired, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_GOT_IP);
     WiFi.onEvent(event_wifi_disconnected, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
 
-    WiFi.disconnect();      // Remove stale settings
+    WiFi.disconnect(true);  // Remove stale settings
+    delay(100);             // Delay for stability
     WiFi.mode(WIFI_AP_STA); // AP + STATION
     WiFi.setSleep(false);   // Disable wifi powersaving for a more
                             // stable connection and lower latency
 
     start_local_ap();
-    delay(500); //Needed to give the power rail time to adjust
+    delay(1000);            //Needed to give the power rail time to adjust
 
     if(config::wifi_ssid != ""){
+        Serial.println("Waiting a bit before STA connect...");
+        delay(800);         // Extra breathing room for the power rail on cold boot
         connect_to_wifi();
     }
 

@@ -2,6 +2,8 @@
 
 ## 2026-04-09
 - Cleaned up MQTT code
+- Cleaned up network code
+- Applied tweaks and fixes to wifi init in main to drastically improve connection to wifi on cold boot
 - Updated mqtt connect/reconnect behavior with better handling
 - Added Opengrill settings to
     - Web settings

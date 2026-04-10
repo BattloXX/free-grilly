@@ -51,21 +51,19 @@ bool connect_to_wifi()
 
     Serial.println("");
 
-    int timeout = CONNECT_TIMEOUT_SECONDS * 1000;
-    int step = 500;
-
     Serial.printf("Connecting to wifi SSID: %s \n", config::wifi_ssid.c_str());
     WiFi.begin(config::wifi_ssid.c_str(), config::wifi_password.c_str());
 
-    int expired_time = 0;
+    unsigned long startAttempt = millis();
+    const unsigned long timeout = CONNECT_TIMEOUT_SECONDS * 1000UL;
+
     while (WiFi.status() != WL_CONNECTED){
         Serial.print(".");
-        delay(step);
-        expired_time += step;
+        delay(500);
 
-        if (expired_time > timeout){
+        if (millis() - startAttempt > timeout){
             Serial.println("");
-            Serial.println("Failed to connect to WiFi");
+            Serial.println("Failed to connect to WiFi (timeout)");
             return false;
         }
     }
