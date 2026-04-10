@@ -410,49 +410,88 @@ jsonResult JsonUtilities::save_opengrill_grill(char* raw_json){
     return {true, "Ok"};
 }
 
-
 void JsonUtilities::load_opengrill_probes(char* buffer){
     jsondoc.clear();
 
     JsonObject p1 = jsondoc["1"].to<JsonObject>();
     p1["name"] = grill::probe_1.name;
-    p1["minimum_temperature"] = grill::probe_1.minimum_temperature;
     p1["target_temperature"] = grill::probe_1.target_temperature;
+
+    if(grill::probe_1.minimum_temperature != 0.00f){
+        p1["minimum_temperature"] = grill::probe_1.minimum_temperature;
+    } else {
+        p1["minimum_temperature"] = nullptr;
+    }
 
     JsonObject p2 = jsondoc["2"].to<JsonObject>();
     p2["name"] = grill::probe_2.name;
-    p2["minimum_temperature"] = grill::probe_2.minimum_temperature;
     p2["target_temperature"] = grill::probe_2.target_temperature;
+
+    if(grill::probe_2.minimum_temperature != 0.00f){
+        p2["minimum_temperature"] = grill::probe_2.minimum_temperature;
+    } else {
+        p2["minimum_temperature"] = nullptr;
+    }
 
     JsonObject p3 = jsondoc["3"].to<JsonObject>();
     p3["name"] = grill::probe_3.name;
-    p3["minimum_temperature"] = grill::probe_3.minimum_temperature;
     p3["target_temperature"] = grill::probe_3.target_temperature;
+
+    if(grill::probe_3.minimum_temperature != 0.00f){
+        p3["minimum_temperature"] = grill::probe_3.minimum_temperature;
+    } else {
+        p3["minimum_temperature"] = nullptr;
+    }
 
     JsonObject p4 = jsondoc["4"].to<JsonObject>();
     p4["name"] = grill::probe_4.name;
-    p4["minimum_temperature"] = grill::probe_4.minimum_temperature;
     p4["target_temperature"] = grill::probe_4.target_temperature;
+
+    if(grill::probe_4.minimum_temperature != 0.00f){
+        p4["minimum_temperature"] = grill::probe_4.minimum_temperature;
+    } else {
+        p4["minimum_temperature"] = nullptr;
+    }
 
     JsonObject p5 = jsondoc["5"].to<JsonObject>();
     p5["name"] = grill::probe_5.name;
-    p5["minimum_temperature"] = grill::probe_5.minimum_temperature;
     p5["target_temperature"] = grill::probe_5.target_temperature;
+
+    if(grill::probe_5.minimum_temperature != 0.00f){
+        p5["minimum_temperature"] = grill::probe_5.minimum_temperature;
+    } else {
+        p5["minimum_temperature"] = nullptr;
+    }
 
     JsonObject p6 = jsondoc["6"].to<JsonObject>();
     p6["name"] = grill::probe_6.name;
-    p6["minimum_temperature"] = grill::probe_6.minimum_temperature;
     p6["target_temperature"] = grill::probe_6.target_temperature;
+
+    if(grill::probe_6.minimum_temperature != 0.00f){
+        p6["minimum_temperature"] = grill::probe_6.minimum_temperature;
+    } else {
+        p6["minimum_temperature"] = nullptr;
+    }
 
     JsonObject p7 = jsondoc["7"].to<JsonObject>();
     p7["name"] = grill::probe_7.name;
-    p7["minimum_temperature"] = grill::probe_7.minimum_temperature;
     p7["target_temperature"] = grill::probe_7.target_temperature;
+
+    if(grill::probe_7.minimum_temperature != 0.00f){
+        p7["minimum_temperature"] = grill::probe_7.minimum_temperature;
+    } else {
+        p7["minimum_temperature"] = nullptr;
+    }
 
     JsonObject p8 = jsondoc["8"].to<JsonObject>();
     p8["name"] = grill::probe_8.name;
-    p8["minimum_temperature"] = grill::probe_8.minimum_temperature;
     p8["target_temperature"] = grill::probe_8.target_temperature;
+
+    if(grill::probe_8.minimum_temperature != 0.00f){
+        p8["minimum_temperature"] = grill::probe_8.minimum_temperature;
+    } else {
+        p8["minimum_temperature"] = nullptr;
+    }
 
     jsondoc.shrinkToFit();
     serializeJson(jsondoc, buffer, config::json_buffer_size);

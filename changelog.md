@@ -13,6 +13,12 @@
 - Cleaned up mqtt reconnect code in main loop
 - Main loop blocks less for mqtt/opengrill receive loop
 - Fixed issue with dns lookups failing
+- cleaned up wifi/dns code
+- added extra checks that mqtt/opengrill can only connect if wifi connected
+- mqtt data is now sent properly when updating probes
+- opengrill update is sent when changing the grill name
+- opengrill update is sent when probes are updates
+- for opengrill we correctly send nullptr for probes that have no minimum temperature
 
 ## 2026-03-30
 - Fix settings not being able to be updated - #25

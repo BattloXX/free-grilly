@@ -227,6 +227,6 @@ namespace task{
     int powerbuttonStackSize  = 10000; //Needed to be able to handle factory reset
     int probesStackSize       = 1000;
     int screenStackSize       = 3000;
-    int webserverStackSize    = 4000;
+    int webserverStackSize    = 8000;
     int stackmonitorStackSize = 4000;
 }

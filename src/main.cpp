@@ -78,7 +78,7 @@ void setup() {
     }
 
     if(millis_pressed < bootup_press_time){
-        // power.shutdown();
+        power.shutdown();
     }
 
     // ***********************************

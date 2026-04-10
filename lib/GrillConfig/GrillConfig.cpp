@@ -13,6 +13,7 @@
 #include "Config.h"
 #include "Grill.h"
 #include "Mqtt.h"
+#include "Opengrill.h"
 #include "Power.h"
 #include "Probe.h"
 #include "Util.h"
@@ -141,10 +142,15 @@ void GrillConfig::save_settings(){
     if(reload_local_ap){
         start_local_ap();
     }
-// TODO hier opengrill init doen
+
     if(config::mqtt_broker != ""){
         config::mqtt_client.setup(config::mqtt_broker, config::mqtt_port);
         config::mqtt_client.publish_settings();
+    }
+
+    if(config::opengrill_server != ""){
+        config::opengrill_client.setup(config::opengrill_server, config::opengrill_port);
+        config::opengrill_client.publish_grill();
     }
 
     GrillConfig::print_settings();
@@ -448,7 +454,14 @@ void GrillConfig::save_probes(){
     config::settings_storage.putFloat("p8_target_temp", grill::probe_8.target_temperature);
     config::settings_storage.putFloat("p8_min_temp", grill::probe_8.minimum_temperature);
 
-    config::mqtt_client.publish_probes();
+    if(config::mqtt_broker != ""){
+        config::mqtt_client.publish_grill();
+    }
+
+    if(config::opengrill_server != ""){
+        config::opengrill_client.publish_probes();
+    }
+
     GrillConfig::print_probes();
 }
 
