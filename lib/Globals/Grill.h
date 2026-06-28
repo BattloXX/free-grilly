@@ -26,4 +26,7 @@ namespace grill {
     extern Probe probe_7;
     extern Probe probe_8;
 
+    // Global alarm flag: true when at least one probe is in alarm state
+    extern bool alarm_active;
+
 }

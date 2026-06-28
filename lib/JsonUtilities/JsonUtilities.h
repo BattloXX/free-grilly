@@ -26,4 +26,10 @@ class JsonUtilities{
         jsonResult save_opengrill_probes(char* jsondata);
 
         void load_json_wifiscan(char *buffer);
+
+        /**
+         * @brief Serialise the history ringbuffers for all 8 probes.
+         *        Values are celsius × 10 (int16). buf_size should be >= 4096.
+         */
+        void load_json_history(char *buffer, size_t buf_size);
 };

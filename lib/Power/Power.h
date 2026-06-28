@@ -175,6 +175,15 @@ public:
 	*/
 	bool startup(void);
 
+	/**
+	 * @brief Enable Dynamic Frequency Scaling (DFS) on the ESP32.
+	 *        CPU scales between 80 MHz (idle) and 240 MHz (under load).
+	 *        Light sleep is disabled to keep peripherals (SPI, I2C) alive.
+	 *        Returns false and prints a warning if the SDK build does not
+	 *        support esp_pm_configure (e.g., single-core or custom SDKs).
+	 */
+	bool enable_power_management(void);
+
 private:
 
 	// ***********************************

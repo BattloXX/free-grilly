@@ -43,11 +43,25 @@ void get_about() {
 }
 
 void get_css() {
+#ifdef ASSET_CSS_GZIP
+    // Phase 7: serve pre-compressed CSS — saves ~100 KB Flash vs raw array
+    web::webserver.sendHeader("Content-Encoding", "gzip");
+    web::webserver.send_P(200, "text/css",
+        reinterpret_cast<const char*>(ASSET_CSS_DATA), ASSET_CSS_SIZE);
+#else
     web::webserver.send_P(200, "text/css", ASSET_CSS);
+#endif
 }
 
 void get_js() {
+#ifdef ASSET_JS_GZIP
+    // Phase 7: serve pre-compressed JS
+    web::webserver.sendHeader("Content-Encoding", "gzip");
+    web::webserver.send_P(200, "text/javascript",
+        reinterpret_cast<const char*>(ASSET_JS_DATA), ASSET_JS_SIZE);
+#else
     web::webserver.send_P(200, "text/javascript", ASSET_JS);
+#endif
 }
 
 

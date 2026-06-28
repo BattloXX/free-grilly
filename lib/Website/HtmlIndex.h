@@ -6,10 +6,35 @@ const char HTML_INDEX[] = R"=====(
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Free Grilly</title>
     <link rel="stylesheet" type="text/css" href="custom-boostrap.min.css">
-    
     <link rel="icon" href="data:,">
+    <style>
+      /* Compact probe card extras */
+      .probe-canvas { display: block; width: 100%; height: 48px; }
+      .eta-badge { font-size: .7rem; }
+      /* Alarm banner */
+      #alarm-banner {
+        display: none;
+        position: sticky;
+        top: 0;
+        z-index: 1050;
+        background: #dc3545;
+        color: #fff;
+        text-align: center;
+        padding: .4rem 1rem;
+        font-weight: 600;
+        font-size: .9rem;
+      }
+      #alarm-banner button { margin-left: .75rem; }
+    </style>
   </head>
   <body>
+
+    <!-- Phase 6: Alarm banner (shown when any probe triggers) -->
+    <div id="alarm-banner">
+      &#128680; Probe alarm active!
+      <button class="btn btn-sm btn-outline-light py-0" id="btn-mute-alarm">Mute</button>
+    </div>
+
     <nav class="navbar navbar-expand bg-body-tertiary">
         <div class="container-fluid">
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,14 +61,14 @@ const char HTML_INDEX[] = R"=====(
             </div>
         </div>
     </nav>
+
     <div class="container">
         <div class="my-2 row">
             <div class="col-5 col-lg-7">
                 <h5 id="grill-name">Free Grilly</h5>
             </div>
-        
             <div class="col-7 col-lg-5 text-end">
-                <span class="badge bg-success" id="grill-battery">BAT <span id="grill-battery-percentage">0</span>% <i id="grill-battery-charging">++</i></span>
+                <span class="badge bg-success" id="grill-battery">BAT <span id="grill-battery-percentage">0</span>% <i id="grill-battery-charging" style="display:none">++</i></span>
                 <span class="badge bg-danger" id="grill-wifi-connected">WIFI <span id="grill-wifi-strength">0%</span></span>
             </div>
         </div>
@@ -55,8 +80,9 @@ const char HTML_INDEX[] = R"=====(
                 </div>
             </div>
         </div>
-        <!-- <div class="row pt-1 row-cols-2 row-cols-sm-2 row-cols-md-2 row-cols-lg-4 g-2"> -->
+
         <div class="row">
+            <!-- Probe cards are built identically; JS populates content -->
             <div class="my-2 col-sm-12 col-md-6" id="probe-card-1">
                 <div class="card">
                     <div class="card-body py-1 px-2">
@@ -67,7 +93,9 @@ const char HTML_INDEX[] = R"=====(
                             <div class="col-7 col-sm-5 probe-temperature text-end"><small id="probe-1-target">0 C</small></div>
                             <div class="col-5 col-sm-7"><small>Minimum temperature</small></div>
                             <div class="col-7 col-sm-5 probe-temperature text-end"><small id="probe-1-minimum">0 C</small></div>
+                            <div class="col-6"><small class="text-muted">ETA: <span id="probe-1-eta" class="eta-badge">—</span></small></div>
                         </div>
+                        <canvas class="probe-canvas" id="probe-1-canvas"></canvas>
                     </div>
                 </div>
             </div>
@@ -81,7 +109,9 @@ const char HTML_INDEX[] = R"=====(
                             <div class="col-7 col-sm-5 probe-temperature text-end"><small id="probe-2-target">0 C</small></div>
                             <div class="col-5 col-sm-7"><small>Minimum temperature</small></div>
                             <div class="col-7 col-sm-5 probe-temperature text-end"><small id="probe-2-minimum">0 C</small></div>
+                            <div class="col-6"><small class="text-muted">ETA: <span id="probe-2-eta" class="eta-badge">—</span></small></div>
                         </div>
+                        <canvas class="probe-canvas" id="probe-2-canvas"></canvas>
                     </div>
                 </div>
             </div>
@@ -95,7 +125,9 @@ const char HTML_INDEX[] = R"=====(
                             <div class="col-7 col-sm-5 probe-temperature text-end"><small id="probe-3-target">0 C</small></div>
                             <div class="col-5 col-sm-7"><small>Minimum temperature</small></div>
                             <div class="col-7 col-sm-5 probe-temperature text-end"><small id="probe-3-minimum">0 C</small></div>
+                            <div class="col-6"><small class="text-muted">ETA: <span id="probe-3-eta" class="eta-badge">—</span></small></div>
                         </div>
+                        <canvas class="probe-canvas" id="probe-3-canvas"></canvas>
                     </div>
                 </div>
             </div>
@@ -109,7 +141,9 @@ const char HTML_INDEX[] = R"=====(
                             <div class="col-7 col-sm-5 probe-temperature text-end"><small id="probe-4-target">0 C</small></div>
                             <div class="col-5 col-sm-7"><small>Minimum temperature</small></div>
                             <div class="col-7 col-sm-5 probe-temperature text-end"><small id="probe-4-minimum">0 C</small></div>
+                            <div class="col-6"><small class="text-muted">ETA: <span id="probe-4-eta" class="eta-badge">—</span></small></div>
                         </div>
+                        <canvas class="probe-canvas" id="probe-4-canvas"></canvas>
                     </div>
                 </div>
             </div>
@@ -123,7 +157,9 @@ const char HTML_INDEX[] = R"=====(
                             <div class="col-7 col-sm-5 probe-temperature text-end"><small id="probe-5-target">0 C</small></div>
                             <div class="col-5 col-sm-7"><small>Minimum temperature</small></div>
                             <div class="col-7 col-sm-5 probe-temperature text-end"><small id="probe-5-minimum">0 C</small></div>
+                            <div class="col-6"><small class="text-muted">ETA: <span id="probe-5-eta" class="eta-badge">—</span></small></div>
                         </div>
+                        <canvas class="probe-canvas" id="probe-5-canvas"></canvas>
                     </div>
                 </div>
             </div>
@@ -137,7 +173,9 @@ const char HTML_INDEX[] = R"=====(
                             <div class="col-7 col-sm-5 probe-temperature text-end"><small id="probe-6-target">0 C</small></div>
                             <div class="col-5 col-sm-7"><small>Minimum temperature</small></div>
                             <div class="col-7 col-sm-5 probe-temperature text-end"><small id="probe-6-minimum">0 C</small></div>
+                            <div class="col-6"><small class="text-muted">ETA: <span id="probe-6-eta" class="eta-badge">—</span></small></div>
                         </div>
+                        <canvas class="probe-canvas" id="probe-6-canvas"></canvas>
                     </div>
                 </div>
             </div>
@@ -151,7 +189,9 @@ const char HTML_INDEX[] = R"=====(
                             <div class="col-7 col-sm-5 probe-temperature text-end"><small id="probe-7-target">0 C</small></div>
                             <div class="col-5 col-sm-7"><small>Minimum temperature</small></div>
                             <div class="col-7 col-sm-5 probe-temperature text-end"><small id="probe-7-minimum">0 C</small></div>
+                            <div class="col-6"><small class="text-muted">ETA: <span id="probe-7-eta" class="eta-badge">—</span></small></div>
                         </div>
+                        <canvas class="probe-canvas" id="probe-7-canvas"></canvas>
                     </div>
                 </div>
             </div>
@@ -165,7 +205,9 @@ const char HTML_INDEX[] = R"=====(
                             <div class="col-7 col-sm-5 probe-temperature text-end"><small id="probe-8-target">0 C</small></div>
                             <div class="col-5 col-sm-7"><small>Minimum temperature</small></div>
                             <div class="col-7 col-sm-5 probe-temperature text-end"><small id="probe-8-minimum">0 C</small></div>
+                            <div class="col-6"><small class="text-muted">ETA: <span id="probe-8-eta" class="eta-badge">—</span></small></div>
                         </div>
+                        <canvas class="probe-canvas" id="probe-8-canvas"></canvas>
                     </div>
                 </div>
             </div>
@@ -178,11 +220,10 @@ const char HTML_INDEX[] = R"=====(
     <script src="bootstrap.min.js" type="text/javascript"></script>
     <script type="text/javascript">
 
-        //Only used during tests, the real implementation uses relative urls
+        // Phase 6: use relative URLs — works via both AP and home WIFI
         const base_url = "";
-        
+
         const api_polling_interval = 1000;
-        const api_unreachable_intervals = 10;
 
         const sleep = ms => new Promise(res => setTimeout(res, ms));
 
@@ -190,6 +231,10 @@ const char HTML_INDEX[] = R"=====(
         var temp_unit = "C";
         var status_classlist = ["text-dark", "bg-light", "bg-success", "bg-warning", "bg-danger"];
 
+        // Phase 6: per-probe temperature history (client-side ring, max 120 samples = 2 min at 1 s interval)
+        const SPARKLINE_MAX = 120;
+        const probeHistory = {};
+        for (let i = 1; i <= 8; i++) probeHistory[i] = [];
 
         // Selectors
         const e_probes = new Array(8);
@@ -201,19 +246,90 @@ const char HTML_INDEX[] = R"=====(
             e_probes[probe_nr]["temperature"]         = document.getElementById("probe-" + probe_nr + "-temperature");
             e_probes[probe_nr]["target_temperature"]  = document.getElementById("probe-" + probe_nr + "-target");
             e_probes[probe_nr]["minimum_temperature"] = document.getElementById("probe-" + probe_nr + "-minimum");
+            e_probes[probe_nr]["eta"]                 = document.getElementById("probe-" + probe_nr + "-eta");
+            e_probes[probe_nr]["canvas"]              = document.getElementById("probe-" + probe_nr + "-canvas");
             e_probe_cards[probe_nr] = document.getElementById("probe-card-" + probe_nr);
         }
 
-        e_grill_name                      = document.getElementById("grill-name");
-
-        e_grill_battery                   = document.getElementById("grill-battery");
-        e_grill_battery_percentage        = document.getElementById("grill-battery-percentage");
-        e_grill_battery_charging          = document.getElementById("grill-battery-charging");
-        
-        e_wifi_connected                  = document.getElementById("grill-wifi-connected");
-        e_wifi_strength                   = document.getElementById("grill-wifi-strength");
+        const e_grill_name               = document.getElementById("grill-name");
+        const e_grill_battery            = document.getElementById("grill-battery");
+        const e_grill_battery_percentage = document.getElementById("grill-battery-percentage");
+        const e_grill_battery_charging   = document.getElementById("grill-battery-charging");
+        const e_wifi_connected           = document.getElementById("grill-wifi-connected");
+        const e_wifi_strength            = document.getElementById("grill-wifi-strength");
+        const e_alarm_banner             = document.getElementById("alarm-banner");
+        const e_btn_mute                 = document.getElementById("btn-mute-alarm");
 
         let wifi_signal_strength = 0;
+        let alarm_notified = false; // prevent repeat browser notifications per alarm cycle
+
+        // Phase 6: request browser notification permission once
+        if ("Notification" in window && Notification.permission === "default") {
+            Notification.requestPermission();
+        }
+
+        function showAlarmNotification(probeName) {
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification("Free Grilly — Probe Ready!", {
+                    body: probeName + " has reached its target temperature.",
+                    icon: "data:,"
+                });
+            }
+        }
+
+        // Mute alarm via API
+        e_btn_mute.addEventListener("click", async () => {
+            try {
+                await fetch(base_url + "/api/alarm/mute", { method: "POST" });
+                e_alarm_banner.style.display = "none";
+                alarm_notified = false;
+            } catch(e) {
+                console.error("Could not mute alarm:", e);
+            }
+        });
+
+        // Phase 6: sparkline canvas renderer (no external library)
+        function drawSparkline(canvas, dataPoints, targetTemp) {
+            if (!canvas || dataPoints.length < 2) return;
+            const ctx   = canvas.getContext("2d");
+            const w     = canvas.offsetWidth  || 300;
+            const h     = canvas.offsetHeight || 48;
+            canvas.width  = w;
+            canvas.height = h;
+            ctx.clearRect(0, 0, w, h);
+            if (dataPoints.length < 2) return;
+
+            const min_v = Math.min(...dataPoints) - 2;
+            const max_v = Math.max(Math.max(...dataPoints) + 2, (targetTemp || 0) + 2);
+            const range = max_v - min_v || 1;
+            const xStep = w / (dataPoints.length - 1);
+
+            const toY = v => h - ((v - min_v) / range) * (h - 4) - 2;
+
+            // Draw target line
+            if (targetTemp > 0) {
+                const ty = toY(targetTemp);
+                ctx.beginPath();
+                ctx.setLineDash([3, 3]);
+                ctx.strokeStyle = "rgba(220,53,69,0.55)";
+                ctx.lineWidth   = 1;
+                ctx.moveTo(0, ty);
+                ctx.lineTo(w, ty);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            // Draw temperature curve
+            ctx.beginPath();
+            ctx.strokeStyle = "#0d6efd";
+            ctx.lineWidth   = 1.5;
+            dataPoints.forEach((v, i) => {
+                const x = i * xStep;
+                const y = toY(v);
+                i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+            });
+            ctx.stroke();
+        }
 
         const toggleDisconnected = document.getElementById("toggle-disconnected-probes");
         let showDisconnected = false;
@@ -234,146 +350,142 @@ const char HTML_INDEX[] = R"=====(
                 }
             }
             const alertBox = document.getElementById('no-probes-alert');
-            if(!anyVisible) {
-                alertBox.style.display = '';
-            } else {
-                alertBox.style.display = 'none';
-            }
+            alertBox.style.display = anyVisible ? 'none' : '';
+        }
+
+        // Phase 6: format ETA seconds into readable string
+        function formatEta(seconds) {
+            if (seconds < 0) return "—";
+            if (seconds === 0) return "Ready!";
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            if (h > 0) return "~" + h + "h " + m + "m";
+            return "~" + m + " min";
         }
 
         async function pollTemperatures() {
-            
             try {
                 const response = await fetch(base_url + "/api/grill");
-                data = await response.json();
-                
+                const data = await response.json();
+
                 // Grill name
                 e_grill_name.textContent = data.name;
 
                 switch(data.temperature_unit){
-                    case "celcius":
-                        temp_unit = "C";
-                        break;
-                    case "fahrenheit":
-                        temp_unit = "F";
-                        break;
-                    default:
-                        temp_unit = "?";
+                    case "celcius":     temp_unit = "C"; break;
+                    case "fahrenheit":  temp_unit = "F"; break;
+                    default:            temp_unit = "?";
                 }
 
-                // Settings
-                
                 // Wifi
                 if(data['wifi_connected'] == true){
                     e_wifi_connected.classList.remove("bg-danger");
-
                     wifi_signal_strength = 140 + data['wifi_signal'];
                     e_wifi_strength.textContent = wifi_signal_strength + " %";
+                    e_wifi_connected.classList.toggle("bg-success", wifi_signal_strength > 60);
+                    e_wifi_connected.classList.toggle("bg-warning", wifi_signal_strength <= 60);
+                } else {
+                    e_wifi_connected.classList.remove("bg-success", "bg-warning");
+                    e_wifi_connected.classList.add("bg-danger");
+                    e_wifi_strength.textContent = "—";
+                }
 
-                    if(wifi_signal_strength > 60){
-                        e_wifi_connected.classList.add("bg-success");
-                    } else {
-                        e_wifi_connected.classList.add("bg-warning");
+                // Battery
+                e_grill_battery_percentage.textContent = data.battery_percentage;
+                e_grill_battery_charging.style.display = data['battery_charging'] ? "inline-block" : "none";
+                if(data.battery_percentage > 50){
+                    e_grill_battery.className = "badge bg-success";
+                } else if(data.battery_percentage > 30){
+                    e_grill_battery.className = "badge bg-warning";
+                } else {
+                    e_grill_battery.className = "badge bg-danger";
+                }
+
+                // Phase 6: alarm banner
+                if (data.alarm_active) {
+                    e_alarm_banner.style.display = "";
+                    if (!alarm_notified) {
+                        alarm_notified = true;
+                        // Find first alarming probe for the notification text
+                        for (let pn = 1; pn <= 8; pn++) {
+                            if (data.probes[pn-1] && data.probes[pn-1].alarm) {
+                                showAlarmNotification(data.probes[pn-1].name || ("Probe " + pn));
+                                break;
+                            }
+                        }
                     }
                 } else {
-                    e_wifi_connected.classList.remove("bg-success");
-                    e_wifi_connected.classList.add("bg-danger");
-                }
-
-                // battery
-                e_grill_battery_percentage.textContent = data.battery_percentage;
-
-                if(data['battery_charging'] == true){
-                    e_grill_battery_charging.style.display = "inline-block";
-                } else {
-                    e_grill_battery_charging.style.display = "none";
-                }
-
-                if(data.battery_percentage > 50){
-                    e_grill_battery.classList.remove("bg-danger");
-                    e_grill_battery.classList.remove("bg-warning");
-                    e_grill_battery.classList.add("bg-success");
-                } else if(data.battery_percentage > 30){
-                    e_grill_battery.classList.remove("bg-danger");
-                    e_grill_battery.classList.remove("bg-success");
-                    e_grill_battery.classList.add("bg-warning");
-                } else {
-                    e_grill_battery.classList.remove("bg-warning");
-                    e_grill_battery.classList.remove("bg-success");
-                    e_grill_battery.classList.add("bg-danger");
+                    e_alarm_banner.style.display = "none";
+                    alarm_notified = false;
                 }
 
                 for(let probe_nr = 1; probe_nr < 9; probe_nr++)
                 {
-                    if(data['probes'][probe_nr - 1]['connected'] == true){
+                    const p = data['probes'][probe_nr - 1];
+                    if(p['connected'] == true){
 
-                        e_probes[probe_nr]["temperature"].textContent = data['probes'][probe_nr - 1]['temperature'].toFixed(2) + " " + temp_unit;
-                        
+                        // History (client-side)
+                        probeHistory[probe_nr].push(p['temperature']);
+                        if (probeHistory[probe_nr].length > SPARKLINE_MAX)
+                            probeHistory[probe_nr].shift();
+
+                        e_probes[probe_nr]["temperature"].textContent = p['temperature'].toFixed(2) + " " + temp_unit;
+
+                        // ETA
+                        e_probes[probe_nr]["eta"].textContent = formatEta(p['eta_seconds']);
+
                         //* target temperature mode
-                        if(data['probes'][probe_nr - 1]['minimum_temperature'] == 0){
-                            
-                            let temperature_difference = data['probes'][probe_nr - 1]['target_temperature'] - data['probes'][probe_nr - 1]['temperature']
-
-                            if(temperature_difference >= 10){
-                                e_probes[probe_nr]["status"].textContent = "Getting ready"
-                                e_probes[probe_nr]["status"].classList.remove(...status_classlist);
-                                e_probes[probe_nr]["status"].classList.add(...["bg-danger"]);
-                            } else if(temperature_difference < 10 && temperature_difference > 0){
-                                e_probes[probe_nr]["status"].textContent = "Almost ready"
-                                e_probes[probe_nr]["status"].classList.remove(...status_classlist);
-                                e_probes[probe_nr]["status"].classList.add(...["bg-warning"]);
-                            } else if(temperature_difference <= 0 ){
-                                e_probes[probe_nr]["status"].textContent = "Ready!"
-                                e_probes[probe_nr]["status"].classList.remove(...status_classlist);
-                                e_probes[probe_nr]["status"].classList.add(...["bg-success"]);
+                        if(p['minimum_temperature'] == 0){
+                            const diff = p['target_temperature'] - p['temperature'];
+                            if(diff >= 10){
+                                e_probes[probe_nr]["status"].textContent = "Getting ready";
+                                e_probes[probe_nr]["status"].className = "badge bg-danger";
+                            } else if(diff < 10 && diff > 0){
+                                e_probes[probe_nr]["status"].textContent = "Almost ready";
+                                e_probes[probe_nr]["status"].className = "badge bg-warning";
+                            } else if(diff <= 0){
+                                e_probes[probe_nr]["status"].textContent = "Ready!";
+                                e_probes[probe_nr]["status"].className = "badge bg-success";
                             }
                         }
 
                         //* temperature range mode
-                        if(data['probes'][probe_nr - 1]['minimum_temperature'] != 0){
-                        
-                            let temperature = data['probes'][probe_nr - 1]['temperature'];
-                            let min_temp    = data['probes'][probe_nr - 1]['minimum_temperature'];
-                            let max_temp    = data['probes'][probe_nr - 1]['target_temperature'];
-
-                            if(temperature >= min_temp && temperature <= max_temp){
-                                e_probes[probe_nr]["status"].textContent = "In range"
-                                e_probes[probe_nr]["status"].classList.remove(...status_classlist);
-                                e_probes[probe_nr]["status"].classList.add(...["bg-success"]);
+                        if(p['minimum_temperature'] != 0){
+                            const temp = p['temperature'];
+                            const min_t = p['minimum_temperature'];
+                            const max_t = p['target_temperature'];
+                            if(temp >= min_t && temp <= max_t){
+                                e_probes[probe_nr]["status"].textContent = "In range";
+                                e_probes[probe_nr]["status"].className = "badge bg-success";
                             } else {
-
-                                let temperature_difference = 0;
-
-                                if(temperature < min_temp){
-                                    temperature_difference = min_temp - temperature;
-                                }
-                                if(temperature > max_temp){
-                                    temperature_difference = temperature - max_temp;
-                                }
-
-                                if(temperature_difference >= 10){
-                                    e_probes[probe_nr]["status"].textContent = "Way out of range"
-                                    e_probes[probe_nr]["status"].classList.remove(...status_classlist);
-                                    e_probes[probe_nr]["status"].classList.add(...["bg-danger"]);
-                                } else if(temperature_difference < 10 && temperature_difference > 0){
-                                    e_probes[probe_nr]["status"].textContent = "Out of range"
-                                    e_probes[probe_nr]["status"].classList.remove(...status_classlist);
-                                    e_probes[probe_nr]["status"].classList.add(...["bg-warning"]);
+                                const diff2 = temp < min_t ? min_t - temp : temp - max_t;
+                                if(diff2 >= 10){
+                                    e_probes[probe_nr]["status"].textContent = "Way out of range";
+                                    e_probes[probe_nr]["status"].className = "badge bg-danger";
+                                } else {
+                                    e_probes[probe_nr]["status"].textContent = "Out of range";
+                                    e_probes[probe_nr]["status"].className = "badge bg-warning";
                                 }
                             }
                         }
 
-                    }else{
-                        e_probes[probe_nr]["temperature"].textContent = "-";
-
-                        e_probes[probe_nr]["status"].textContent = "Disconnected"
-                        e_probes[probe_nr]["status"].classList.remove(...status_classlist);
-                        e_probes[probe_nr]["status"].classList.add(...["bg-light", "text-dark"]);
+                    } else {
+                        e_probes[probe_nr]["temperature"].textContent = "—";
+                        e_probes[probe_nr]["status"].textContent = "Disconnected";
+                        e_probes[probe_nr]["status"].className = "badge text-dark bg-light";
+                        e_probes[probe_nr]["eta"].textContent = "—";
                     }
 
-                    e_probes[probe_nr]["name"].textContent                = data['probes'][probe_nr - 1]['name'];
-                    e_probes[probe_nr]["minimum_temperature"].textContent = data['probes'][probe_nr - 1]['minimum_temperature'].toFixed(2) + " " + temp_unit;
-                    e_probes[probe_nr]["target_temperature"].textContent  = data['probes'][probe_nr - 1]['target_temperature'].toFixed(2) + " " + temp_unit;
+                    e_probes[probe_nr]["name"].textContent = p['name'];
+                    e_probes[probe_nr]["minimum_temperature"].textContent = p['minimum_temperature'].toFixed(2) + " " + temp_unit;
+                    e_probes[probe_nr]["target_temperature"].textContent  = p['target_temperature'].toFixed(2)  + " " + temp_unit;
+
+                    // Phase 6: draw sparkline
+                    drawSparkline(
+                        e_probes[probe_nr]["canvas"],
+                        probeHistory[probe_nr],
+                        p['target_temperature']
+                    );
                 }
 
                 updateProbeVisibility();
@@ -381,13 +493,11 @@ const char HTML_INDEX[] = R"=====(
             } catch (error) {
                 console.error('Grill is unreachable:', error);
             }
-
         }
-        
+
         async function pollingLoop() {
             await sleep(api_polling_interval);
             pollTemperatures();
-            
             pollingLoop();
         }
 

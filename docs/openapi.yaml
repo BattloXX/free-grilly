@@ -1,7 +1,7 @@
 openapi: '3.1.1'
 info:
   title: Free-Grilly
-  version: '25.3.27'
+  version: '25.6.28'
   description: The local Free-Grilly api
 
 externalDocs:
@@ -22,6 +22,8 @@ tags:
     description: Detailed probe data and settings
   - name: settings
     description: Settings management
+  - name: alarm
+    description: Alarm status and mute control
   - name: utility
     description: Utility api calls
 
@@ -89,6 +91,18 @@ components:
           enum:
             - celcius
             - fahrenheit
+        alarm_active:
+          type: boolean
+          example: false
+          description: >
+            True when at least one probe has triggered its alarm
+            (reached target temperature or left the allowed temperature range).
+        mdns_hostname:
+          type: string
+          example: free-grilly-a1b2c3d4
+          description: >
+            The mDNS hostname (without .local suffix). The device is reachable
+            at http://<mdns_hostname>.local on the local network.
         probes:
           type: array
           minItems: 8
@@ -130,13 +144,28 @@ components:
               connected:
                 type: boolean
                 description: Is the probe connected
+              alarm:
+                type: boolean
+                example: false
+                description: >
+                  True when this probe has triggered its alarm (temperature reached
+                  target or left the allowed range). Mute via POST /alarm/mute.
+              eta_seconds:
+                type: integer
+                example: 840
+                description: >
+                  Estimated seconds until the target temperature is reached
+                  (linear regression over recent samples). -1 = unknown or
+                  temperature is falling. 0 = target already reached.
             example:
               probe_id: 1
               name: Ambient Probe
               temperature: 23.71832
               minimum_temperature: null
-              target_temperature: 23.71832
+              target_temperature: 90.0
               connected: true
+              alarm: false
+              eta_seconds: 840
 
     Probe:
       type: object
@@ -490,6 +519,110 @@ paths:
                 $ref: '#/components/schemas/Settings'
         '400':
           $ref: '#/components/responses/400'
+
+  /probes/history:
+    get:
+      tags:
+        - probes
+      summary: Temperature history per probe
+      description: >
+        Returns the last ≤60 temperature readings per probe sampled every 10 seconds
+        (up to 10 minutes of history). Values are celsius × 10 (int16) to save bandwidth.
+        Divide by 10.0 to get °C. Disconnected probes return an empty history array.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  interval_seconds:
+                    type: integer
+                    example: 10
+                    description: Seconds between samples in the history arrays.
+                  probes:
+                    type: array
+                    minItems: 8
+                    maxItems: 8
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 1
+                        name:
+                          type: string
+                          example: Brisket
+                        history:
+                          type: array
+                          description: Temperature values as celsius × 10 (divide by 10.0 for °C)
+                          items:
+                            type: integer
+                          example: [850, 855, 862, 870, 878, 887]
+
+  /alarm/mute:
+    post:
+      tags:
+        - alarm
+      summary: Mute active alarm
+      description: >
+        Silences the buzzer and clears the alarm banner until the next alarm event.
+        Has no effect if no alarm is currently active.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+    options:
+      tags:
+        - alarm
+      summary: CORS pre-flight for alarm/mute
+      responses:
+        '200':
+          description: OK
+
+  /info:
+    get:
+      tags:
+        - utility
+      summary: Device identity and capabilities
+      description: >
+        Lightweight endpoint for app discovery confirmation and feature detection.
+        Check the `capabilities` array before using features added in newer firmware.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  uuid:
+                    type: string
+                    format: uuid
+                    example: a1b2c3d4-e5f6-7890-ab12-cd3456ef7890
+                  name:
+                    type: string
+                    example: My BBQ
+                  firmware:
+                    type: string
+                    example: 25.06.28
+                  mdns_hostname:
+                    type: string
+                    example: free-grilly-a1b2c3d4
+                    description: Hostname without .local suffix
+                  capabilities:
+                    type: array
+                    items:
+                      type: string
+                    example: ["history", "alarm_mute", "eta"]
 
   /wifiscan:
     get:

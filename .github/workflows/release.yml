@@ -1,0 +1,172 @@
+name: Build & Release Firmware
+
+# Trigger on version tags (e.g. 25.06.28) and on manual dispatch
+on:
+  push:
+    tags:
+      - '[0-9][0-9].[0-9][0-9].[0-9][0-9]'
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Version tag for the release (e.g. 25.06.28)'
+        required: true
+        default: ''
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # needed to create the GitHub Release
+
+    steps:
+      # -----------------------------------------------------------------------
+      # 1. Checkout full history so tags are available
+      # -----------------------------------------------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # -----------------------------------------------------------------------
+      # 2. Determine the version string
+      # -----------------------------------------------------------------------
+      - name: Resolve version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VER="${{ github.event.inputs.tag }}"
+          else
+            VER="${GITHUB_REF_NAME}"
+          fi
+          # Strip leading 'v' if present
+          VER="${VER#v}"
+          echo "version=${VER}" >> "$GITHUB_OUTPUT"
+          echo "Resolved version: ${VER}"
+
+      # -----------------------------------------------------------------------
+      # 3. Python + PlatformIO + esptool
+      # -----------------------------------------------------------------------
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install build dependencies
+        run: pip install platformio esptool
+
+      # -----------------------------------------------------------------------
+      # 4. Regenerate gzip web-asset headers from html_source/
+      #    (only runs if the generator script exists)
+      # -----------------------------------------------------------------------
+      - name: Regenerate web assets
+        run: |
+          if [ -f tools/generate_web_assets.py ]; then
+            python3 tools/generate_web_assets.py
+          else
+            echo "No generator script found – skipping web-asset regeneration"
+          fi
+
+      # -----------------------------------------------------------------------
+      # 5. Inject version into src/Settings.h
+      # -----------------------------------------------------------------------
+      - name: Inject firmware version
+        run: |
+          VER="${{ steps.version.outputs.version }}"
+          echo "Injecting version: ${VER}"
+          sed -i "s|String grill_firmware_version\s*=\s*\"[^\"]*\"|String grill_firmware_version       = \"${VER}\"|" src/Settings.h
+          grep grill_firmware_version src/Settings.h
+
+      # -----------------------------------------------------------------------
+      # 6. Build with PlatformIO
+      # -----------------------------------------------------------------------
+      - name: Build firmware
+        run: platformio run --environment esp32dev
+
+      # -----------------------------------------------------------------------
+      # 7. Size gate — OTA bin must fit inside one app slot
+      #    min_spiffs.csv app slot = 0x1F0000 = 2031616 bytes (~1.94 MB)
+      # -----------------------------------------------------------------------
+      - name: Check firmware size
+        run: |
+          OTA_BIN=".pio/build/esp32dev/firmware.bin"
+          # App-slot limit from min_spiffs.csv (0x1F0000)
+          MAX_BYTES=2031616
+          ACTUAL=$(wc -c < "${OTA_BIN}")
+          echo "Firmware size: ${ACTUAL} bytes  (limit: ${MAX_BYTES} bytes)"
+          if [ "${ACTUAL}" -gt "${MAX_BYTES}" ]; then
+            echo "::error::Firmware (${ACTUAL} B) exceeds OTA slot limit (${MAX_BYTES} B)!"
+            exit 1
+          fi
+          HEADROOM=$((MAX_BYTES - ACTUAL))
+          echo "Headroom: ${HEADROOM} bytes  ($((HEADROOM / 1024)) KB)"
+
+      # -----------------------------------------------------------------------
+      # 8. Copy OTA binary
+      # -----------------------------------------------------------------------
+      - name: Stage OTA binary
+        run: |
+          VER="${{ steps.version.outputs.version }}"
+          mkdir -p dist
+          cp .pio/build/esp32dev/firmware.bin "dist/free-grilly-${VER}-ota.bin"
+          echo "OTA binary: dist/free-grilly-${VER}-ota.bin"
+
+      # -----------------------------------------------------------------------
+      # 9. Build full-flash binary (bootloader + partitions + boot_app0 + firmware)
+      # -----------------------------------------------------------------------
+      - name: Build full flash binary
+        run: |
+          VER="${{ steps.version.outputs.version }}"
+          # Locate boot_app0.bin inside the installed PlatformIO package
+          BOOT_APP0=$(find ~/.platformio/packages -name "boot_app0.bin" | head -1)
+          if [ -z "${BOOT_APP0}" ]; then
+            echo "::error::boot_app0.bin not found in PlatformIO packages"
+            exit 1
+          fi
+          echo "Using boot_app0: ${BOOT_APP0}"
+          esptool.py --chip esp32 merge-bin \
+            --output "dist/free-grilly-${VER}-full.bin" \
+            --flash-mode dio \
+            --flash-size 4MB \
+            0x1000  .pio/build/esp32dev/bootloader.bin \
+            0x8000  .pio/build/esp32dev/partitions.bin \
+            0xe000  "${BOOT_APP0}" \
+            0x10000 .pio/build/esp32dev/firmware.bin
+          echo "Full binary: dist/free-grilly-${VER}-full.bin"
+          ls -lh dist/
+
+      # -----------------------------------------------------------------------
+      # 10. Create GitHub Release with both binaries attached
+      # -----------------------------------------------------------------------
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "Free Grilly ${{ steps.version.outputs.version }}"
+          body: |
+            ## Free Grilly ${{ steps.version.outputs.version }}
+
+            ### Release assets
+            | File | Description |
+            |------|-------------|
+            | `*-ota.bin`  | OTA update — upload via the web UI at `http://<device-ip>/update` |
+            | `*-full.bin` | Full flash — use esptool: `esptool.py --chip esp32 write_flash 0x0 *-full.bin` |
+
+            ### Flashing
+            **OTA (recommended):**
+            1. Open `http://<your-grilly-ip>/update` in a browser
+            2. Upload the `*-ota.bin` file
+
+            **Full flash (fresh install / recovery):**
+            ```bash
+            esptool.py --chip esp32 --port /dev/ttyUSB0 write_flash 0x0 free-grilly-${{ steps.version.outputs.version }}-full.bin
+            ```
+
+            See [CHANGELOG](CHANGELOG.md) for details.
+          files: |
+            dist/free-grilly-${{ steps.version.outputs.version }}-ota.bin
+            dist/free-grilly-${{ steps.version.outputs.version }}-full.bin
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

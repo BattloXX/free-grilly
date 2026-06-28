@@ -233,7 +233,7 @@ void Probe::set_type(String probe_type, int reference_kohm, int reference_celciu
 }
 
 void Probe::set_temperature(float target_temperature, float minimum_temperature){
-    
+
     Probe::target_temperature = target_temperature;
     Probe::minimum_temperature = minimum_temperature;
 
@@ -244,4 +244,62 @@ void Probe::set_temperature(float target_temperature, float minimum_temperature)
     } else {
         Probe::has_beeped_outside = false;
     }
+}
+
+// ***********************************
+// * History ringbuffer
+// ***********************************
+
+void Probe::push_history(float temp_c){
+    history[history_head] = (int16_t)(temp_c * 10.0f);
+    history_head = (history_head + 1) % HISTORY_SIZE;
+    if (history_count < HISTORY_SIZE) history_count++;
+}
+
+long Probe::seconds_to_target() const {
+    if (!connected || target_temperature <= 0.0f || history_count < 6) return -1;
+
+    const int N = (history_count < 20) ? history_count : 20;
+
+    // Collect the last N samples in chronological order (oldest → index 0, newest → index N-1)
+    float sum_x = 0, sum_y = 0, sum_xx = 0, sum_xy = 0;
+    int base = (history_head - history_count + HISTORY_SIZE) % HISTORY_SIZE;
+
+    for (int i = 0; i < N; i++){
+        // Index of the (history_count - N + i)-th chronological sample
+        int offset = (history_count - N + i);
+        int idx    = (base + offset) % HISTORY_SIZE;
+        float x = (float)i;
+        float y = history[idx] / 10.0f;
+        sum_x  += x;
+        sum_y  += y;
+        sum_xx += x * x;
+        sum_xy += x * y;
+    }
+
+    float denom = (float)N * sum_xx - sum_x * sum_x;
+    if (fabsf(denom) < 0.001f) return -1;
+
+    float slope = ((float)N * sum_xy - sum_x * sum_y) / denom; // °C per sample interval
+
+    if (slope <= 0.01f) return -1; // temperature not rising toward target
+
+    float latest_temp = history[((history_head - 1) % HISTORY_SIZE + HISTORY_SIZE) % HISTORY_SIZE] / 10.0f;
+    float remaining   = target_temperature - latest_temp;
+    if (remaining <= 0.0f) return 0;
+
+    float samples_needed = remaining / slope;
+    return (long)(samples_needed * HISTORY_INTERVAL_S);
+}
+
+int Probe::get_history(int16_t* out, int max_count) const {
+    if (history_count == 0 || max_count <= 0) return 0;
+    int count = (history_count < max_count) ? history_count : max_count;
+    int base  = (history_head - history_count + HISTORY_SIZE) % HISTORY_SIZE;
+
+    for (int i = 0; i < count; i++){
+        int idx = (base + i) % HISTORY_SIZE;
+        out[i]  = history[idx];
+    }
+    return count;
 }

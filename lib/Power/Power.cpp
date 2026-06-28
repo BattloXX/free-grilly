@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <Power.h>
 #include <Wire.h>
+#include <esp_pm.h>
 
 #include "Config.h"
 #include "Grill.h"
@@ -211,6 +212,23 @@ bool pwr::startup(void) {
 	setPowerRail(ENABLE,gpio::power_adc_circuit);
 	setPowerRail(ENABLE,gpio::power_probes);
 	return true;
+}
+
+bool pwr::enable_power_management(void) {
+    // Dynamic Frequency Scaling: CPU idles at 80 MHz, boosts to 240 MHz under load.
+    // light_sleep_enable = false keeps HSPI (probes) and I2C (battery gauge) always-on.
+    esp_pm_config_esp32_t pm_cfg = {};
+    pm_cfg.max_freq_mhz      = 240;
+    pm_cfg.min_freq_mhz      = 80;
+    pm_cfg.light_sleep_enable = false;
+
+    esp_err_t ret = esp_pm_configure(&pm_cfg);
+    if (ret != ESP_OK) {
+        Serial.println("Power: DFS not available on this build (esp_pm_configure failed)");
+        return false;
+    }
+    Serial.println("Power: DFS enabled (80–240 MHz)");
+    return true;
 }
 
 bat battery;

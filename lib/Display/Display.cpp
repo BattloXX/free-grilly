@@ -14,9 +14,13 @@
 #include "Config.h"
 #include "Power.h"
 
+// Forward declaration for ETA helper used in draw_screen_details
+static std::string format_eta(long seconds);
+
 
 U8G2_ST7565_64128N_F_4W_SW_SPI screen(U8G2_R2, /* clock=*/ 18, /* data=*/ 23, /* cs=*/ 5, /* dc=*/ 17, /* reset=*/ 16); 
 bool is_critical_battery_flash          = false;
+bool is_alarm_flash                     = false;  // Phase 2: alarm blink state
 bool is_display_updating                = false;
 int notification_offset                 = 0;
 int current_screen_page                 = 0;
@@ -114,7 +118,14 @@ bool disp::display_update(void) {
         return true; 
     }
 
-    screen.clearBuffer(); 
+    // Phase 2: toggle alarm flash state every display update (1 s interval → 0.5 Hz blink)
+    if (grill::alarm_active) {
+        is_alarm_flash = !is_alarm_flash;
+    } else {
+        is_alarm_flash = false;
+    }
+
+    screen.clearBuffer();
     delay(10);
     screen.drawLine(2, 7, 125, 7);
      
@@ -368,21 +379,34 @@ bool disp::draw_screen_details(int connectedProbe){
     current_target_temp = get_target_temp(connectedProbe);
     current_elapsed_time = get_connection_time(connectedProbe);
 
+    // Phase 2: alarm blinking — invert probe label when in alarm
+    bool probe_alarm = get_alarm(connectedProbe);
+
     // probe name
     screen.setFont(u8g2_font_profont12_tr);
+    if (probe_alarm && is_alarm_flash) {
+        screen.setDrawColor(2);
+        screen.drawBox(0, 12, 128, 9);
+        screen.setDrawColor(1);
+    }
     screen.drawStr(3, 20, "P :");
     screen.setCursor(9, 20); screen.print(connectedProbe);
     screen.setCursor(22, 20); screen.print(current_active_name);
-    
-    // probe temp 
-    screen.setFont(u8g2_font_profont29_tr); 
-    screen.setCursor(3, 42); screen.printf("%.1f", current_active_temp);      
 
-    // status text
-    screen.setFont(u8g2_font_profont10_tr); 
+    // probe temp
+    screen.setFont(u8g2_font_profont29_tr);
+    screen.setCursor(3, 42); screen.printf("%.1f", current_active_temp);
+
+    // status text: elapsed time on line 1
+    screen.setFont(u8g2_font_profont10_tr);
     screen.setCursor(3, 53); screen.printf(current_elapsed_time.c_str());
-    //screen.drawStr(3, 53, "00:00");
-    //screen.drawStr(3, 62, "STATUS 2"); // Placeholder below the timer that can be used in the future to relay other information
+
+    // Phase 2: ETA on line 2 (replaces old STATUS 2 placeholder)
+    long eta_s = get_eta_seconds(connectedProbe);
+    if (eta_s >= 0) {
+        std::string eta_str = format_eta(eta_s);
+        screen.setCursor(3, 62); screen.printf(eta_str.c_str());
+    }
 
     if (current_minimum_temp <= 0 and current_target_temp > 0 and current_active_temp > current_target_temp){
         screen.drawStr(95, 62, "READY");
@@ -419,20 +443,26 @@ bool disp::draw_screen_info(void){
 
     screen.setFont(u8g2_font_4x6_tr);
     // Grill info
-    screen.drawStr(10, 18, "NAME:");
-    screen.setCursor(33, 18); screen.print(config::grill_name);
-    screen.drawStr(18, 26, "FW: ");
-    screen.setCursor(33, 26); screen.print(config::grill_firmware_version);
-    // AP info
-    screen.drawStr(10, 36, "SSID:");
-    screen.setCursor(33, 36); screen.print(config::wifi_ssid);
-    screen.drawStr(18, 44, "IP: ");
-    screen.setCursor(33, 44); screen.print(config::wifi_ip);
+    screen.drawStr(10, 15, "NAME:");
+    screen.setCursor(33, 15); screen.print(config::grill_name);
+    screen.drawStr(18, 22, "FW: ");
+    screen.setCursor(33, 22); screen.print(config::grill_firmware_version);
+    // Phase 5: mDNS hostname
+    screen.drawStr(2, 30, "mDNS:");
+    // Trim "free-grilly-" prefix so it fits: show only the short UUID part
+    String mdns_short = config::mdns_hostname;
+    if (mdns_short.startsWith("free-grilly-")) mdns_short = mdns_short.substring(12);
+    screen.setCursor(30, 30); screen.print(mdns_short + ".local");
+    // Wifi STA info
+    screen.drawStr(10, 39, "SSID:");
+    screen.setCursor(33, 39); screen.print(config::wifi_ssid);
+    screen.drawStr(18, 47, "IP: ");
+    screen.setCursor(33, 47); screen.print(config::wifi_ip);
     // local AP info
-    screen.drawStr(2, 54, "L-SSID:");
-    screen.setCursor(33, 54); screen.print(config::local_ap_ssid);
-    screen.drawStr(10, 62, "L-IP: ");
-    screen.setCursor(33, 62); screen.print(config::local_ap_ip);
+    screen.drawStr(2, 56, "L-SSID:");
+    screen.setCursor(33, 56); screen.print(config::local_ap_ssid);
+    screen.drawStr(10, 63, "L-IP: ");
+    screen.setCursor(33, 63); screen.print(config::local_ap_ip);
 
     return true;
 }
@@ -644,6 +674,43 @@ std::pair<int, std::vector<int>> disp::get_connected_probes(void) {
     if(grill::probe_7.connected) { connectedProbes.push_back(7); connectedCount++; }
     if(grill::probe_8.connected) { connectedProbes.push_back(8); connectedCount++; }
     return {connectedCount, connectedProbes};
+}
+
+bool disp::get_alarm(int connectedProbe) {
+    switch (connectedProbe) {
+        case 1: return grill::probe_1.alarm;
+        case 2: return grill::probe_2.alarm;
+        case 3: return grill::probe_3.alarm;
+        case 4: return grill::probe_4.alarm;
+        case 5: return grill::probe_5.alarm;
+        case 6: return grill::probe_6.alarm;
+        case 7: return grill::probe_7.alarm;
+        case 8: return grill::probe_8.alarm;
+        default: return false;
+    }
+}
+
+long disp::get_eta_seconds(int connectedProbe) {
+    switch (connectedProbe) {
+        case 1: return grill::probe_1.seconds_to_target();
+        case 2: return grill::probe_2.seconds_to_target();
+        case 3: return grill::probe_3.seconds_to_target();
+        case 4: return grill::probe_4.seconds_to_target();
+        case 5: return grill::probe_5.seconds_to_target();
+        case 6: return grill::probe_6.seconds_to_target();
+        case 7: return grill::probe_7.seconds_to_target();
+        case 8: return grill::probe_8.seconds_to_target();
+        default: return -1;
+    }
+}
+
+// Phase 2: format seconds into "in H:MM" string for the LCD
+static std::string format_eta(long seconds) {
+    std::ostringstream oss;
+    int h = seconds / 3600;
+    int m = (seconds % 3600) / 60;
+    oss << "in " << h << ":" << std::setfill('0') << std::setw(2) << m;
+    return oss.str();
 }
 
 disp display;

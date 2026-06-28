@@ -23,72 +23,30 @@ void JsonUtilities::load_json_status(char *buffer){
     jsondoc["wifi_ip"]            = config::wifi_ip;
     jsondoc["wifi_signal"]        = WiFi.RSSI();
     jsondoc["temperature_unit"]   = config::temperature_unit;
+    jsondoc["alarm_active"]       = grill::alarm_active;
+    jsondoc["mdns_hostname"]      = config::mdns_hostname;
+
+    // Helper lambda to fill one probe object (includes alarm + eta_seconds)
+    auto fill_probe = [](JsonObject obj, int id, Probe& p){
+        obj["probe_id"]            = id;
+        obj["name"]                = p.name;
+        obj["temperature"]         = p.temperature;
+        obj["minimum_temperature"] = p.minimum_temperature;
+        obj["target_temperature"]  = p.target_temperature;
+        obj["connected"]           = p.connected;
+        obj["alarm"]               = p.alarm;
+        obj["eta_seconds"]         = p.seconds_to_target(); // -1 = unknown
+    };
 
     JsonArray probeData = jsondoc["probes"].to<JsonArray>();
-
-    JsonObject probeData_0 = probeData.add<JsonObject>();
-    probeData_0["probe_id"] = 1;
-    probeData_0["name"] = grill::probe_1.name;
-    probeData_0["temperature"] = grill::probe_1.temperature;
-    probeData_0["minimum_temperature"] = grill::probe_1.minimum_temperature;
-    probeData_0["target_temperature"] = grill::probe_1.target_temperature;
-    probeData_0["connected"] = grill::probe_1.connected;
-
-    JsonObject probeData_1 = probeData.add<JsonObject>();
-    probeData_1["probe_id"] = 2;
-    probeData_1["name"] = grill::probe_2.name;
-    probeData_1["temperature"] = grill::probe_2.temperature;
-    probeData_1["minimum_temperature"] = grill::probe_2.minimum_temperature;
-    probeData_1["target_temperature"] = grill::probe_2.target_temperature;
-    probeData_1["connected"] = grill::probe_2.connected;
-
-    JsonObject probeData_2 = probeData.add<JsonObject>();
-    probeData_2["probe_id"] = 3;
-    probeData_2["name"] = grill::probe_3.name;
-    probeData_2["temperature"] = grill::probe_3.temperature;
-    probeData_2["minimum_temperature"] = grill::probe_3.minimum_temperature;
-    probeData_2["target_temperature"] = grill::probe_3.target_temperature;
-    probeData_2["connected"] = grill::probe_3.connected;
-
-    JsonObject probeData_3 = probeData.add<JsonObject>();
-    probeData_3["probe_id"] = 4;
-    probeData_3["name"] = grill::probe_4.name;
-    probeData_3["temperature"] = grill::probe_4.temperature;
-    probeData_3["minimum_temperature"] = grill::probe_4.minimum_temperature;
-    probeData_3["target_temperature"] = grill::probe_4.target_temperature;
-    probeData_3["connected"] = grill::probe_4.connected;
-
-    JsonObject probeData_4 = probeData.add<JsonObject>();
-    probeData_4["probe_id"] = 5;
-    probeData_4["name"] = grill::probe_5.name;
-    probeData_4["temperature"] = grill::probe_5.temperature;
-    probeData_4["minimum_temperature"] = grill::probe_5.minimum_temperature;
-    probeData_4["target_temperature"] = grill::probe_5.target_temperature;
-    probeData_4["connected"] = grill::probe_5.connected;
-
-    JsonObject probeData_5 = probeData.add<JsonObject>();
-    probeData_5["probe_id"] = 6;
-    probeData_5["name"] = grill::probe_6.name;
-    probeData_5["temperature"] = grill::probe_6.temperature;
-    probeData_5["minimum_temperature"] = grill::probe_6.minimum_temperature;
-    probeData_5["target_temperature"] = grill::probe_6.target_temperature;
-    probeData_5["connected"] = grill::probe_6.connected;
-
-    JsonObject probeData_6 = probeData.add<JsonObject>();
-    probeData_6["probe_id"] = 7;
-    probeData_6["name"] = grill::probe_7.name;
-    probeData_6["temperature"] = grill::probe_7.temperature;
-    probeData_6["minimum_temperature"] = grill::probe_7.minimum_temperature;
-    probeData_6["target_temperature"] = grill::probe_7.target_temperature;
-    probeData_6["connected"] = grill::probe_7.connected;
-
-    JsonObject probeData_7 = probeData.add<JsonObject>();
-    probeData_7["probe_id"] = 8;
-    probeData_7["name"] = grill::probe_8.name;
-    probeData_7["temperature"] = grill::probe_8.temperature;
-    probeData_7["minimum_temperature"] = grill::probe_8.minimum_temperature;
-    probeData_7["target_temperature"] = grill::probe_8.target_temperature;
-    probeData_7["connected"] = grill::probe_8.connected;
+    fill_probe(probeData.add<JsonObject>(), 1, grill::probe_1);
+    fill_probe(probeData.add<JsonObject>(), 2, grill::probe_2);
+    fill_probe(probeData.add<JsonObject>(), 3, grill::probe_3);
+    fill_probe(probeData.add<JsonObject>(), 4, grill::probe_4);
+    fill_probe(probeData.add<JsonObject>(), 5, grill::probe_5);
+    fill_probe(probeData.add<JsonObject>(), 6, grill::probe_6);
+    fill_probe(probeData.add<JsonObject>(), 7, grill::probe_7);
+    fill_probe(probeData.add<JsonObject>(), 8, grill::probe_8);
 
     jsondoc.shrinkToFit();
     serializeJson(jsondoc, buffer, config::json_buffer_size);
@@ -593,4 +551,36 @@ void JsonUtilities::load_json_wifiscan(char* buffer){
     jsondoc.shrinkToFit();
 
     serializeJson(jsondoc, buffer, config::json_buffer_size);
+}
+
+// ***********************************
+// * Probe history (Phase 3)
+// * Returns compact array of int16 values (celsius × 10) per probe.
+// ***********************************
+
+void JsonUtilities::load_json_history(char* buffer, size_t buf_size) {
+    jsondoc.clear();
+
+    jsondoc["interval_seconds"] = 10; // matches Probe::HISTORY_INTERVAL_S
+
+    JsonArray probes = jsondoc["probes"].to<JsonArray>();
+
+    Probe* probe_list[8] = {
+        &grill::probe_1, &grill::probe_2, &grill::probe_3, &grill::probe_4,
+        &grill::probe_5, &grill::probe_6, &grill::probe_7, &grill::probe_8
+    };
+
+    int16_t tmp[60];
+    for (int i = 0; i < 8; i++) {
+        Probe& p         = *probe_list[i];
+        JsonObject obj   = probes.add<JsonObject>();
+        obj["probe_id"]  = i + 1;
+        obj["connected"] = p.connected;
+        JsonArray arr    = obj["history"].to<JsonArray>();
+        int count        = p.get_history(tmp, 60);
+        for (int j = 0; j < count; j++) arr.add(tmp[j]);
+    }
+
+    jsondoc.shrinkToFit();
+    serializeJson(jsondoc, buffer, buf_size);
 }

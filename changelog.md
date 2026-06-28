@@ -1,5 +1,47 @@
 # Changelog (firmware only)
 
+## 25.06.28
+
+### Battery / Power
+- **WiFi Modem-Sleep**: switched from `setSleep(false)` to `setSleep(WIFI_PS_MIN_MODEM)` — single largest battery saving (~2–3×), STA connection remains stable
+- **Dynamic Frequency Scaling (DFS)**: CPU scales between 80–240 MHz automatically (`esp_pm_configure`); peripherals unaffected (`light_sleep_enable=false`)
+- **Default backlight timeout**: changed from 0 (always on) to 3 minutes for new installs; button or alarm wake re-enables it
+- **Webserver idle delay**: `delay(1)` → `delay(2)` to ease CPU load in webserver task
+
+### New Features
+- **Temperature history ringbuffer**: each probe stores up to 60 samples (sampled every 10 s, ~10 min of history) in RAM as `int16_t` (celsius×10, ~1 KB total)
+- **ETA / remaining-time estimation**: `Probe::seconds_to_target()` uses linear regression over the last 20 history samples; displayed on LCD and in web API
+- **mDNS discovery**: device advertises as `free-grilly-<uuid8>.local` via `_http._tcp` and `_free-grilly._tcp` with TXT records (uuid, name, fw)
+- **Web alarm banner + Mute button**: sticky red banner when any probe alarms; browser Notification API; `POST /api/alarm/mute` silences buzzer
+- **Gzip web assets**: CSS (~130 KB) and JS compressed in Flash via `tools/generate_web_assets.py`; served with `Content-Encoding: gzip`
+
+### Web UI (html_source/index.html)
+- Added Canvas sparkline graph per probe card (no external library, pure `<canvas>`)
+- Added ETA display per probe card (`eta_seconds` from `/api/grill`)
+- Alarm banner with mute button
+- Browser Notification support for background alerts
+- Fixed `base_url` hardcode — now uses relative URLs (works from any network)
+
+### API
+- `GET /api/grill` extended: adds `alarm_active`, `mdns_hostname`; per-probe `alarm` + `eta_seconds`
+- `GET /api/probes/history` — returns history ringbuffer for all 8 probes
+- `POST /api/alarm/mute` — mutes active alarm
+- `GET /api/info` — lightweight device identity + capabilities array
+- `docs/openapi.yaml` updated to v25.6.28
+
+### LCD (Display.cpp)
+- Detail screen: shows ETA (`in H:MM`) on line 2; probe label blinks (inverted) when alarm active
+- Info screen: shows mDNS short hostname (e.g. `a1b2c3d4.local`)
+
+### Build / CI
+- New `tools/generate_web_assets.py`: regenerates all `lib/Website/*.h` from `html_source/` (gzip for CSS/JS)
+- New `.github/workflows/release.yml`: tag-triggered CI builds OTA + Full flash bins, runs size gate (< 2 MB), attaches both as GitHub Release assets
+- `build_firmware_release.sh` kept as local fallback
+
+### Documentation
+- `docs/android_app.md`: full Android app API guide (provisioning, NSD discovery, REST reference, architecture proposal with Kotlin/Compose/Retrofit)
+- `docs/openapi.yaml`: new paths `/probes/history`, `/alarm/mute`, `/info`; Grill schema extended
+
 ## 2026-04-18
 - Cleaned up MQTT code
 - Cleaned up network code

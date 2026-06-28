@@ -43,25 +43,42 @@ This project provides alternative firmware for the Grilleye Max thermometer. Aft
 * **Dual Web Access:** Access the web interface via:
     * A local Access Point (AP) mode (`http://192.168.200.10`) for initial setup.
     * Your home WiFi network (once configured) using the device's local IP address.
+    * **mDNS**: `http://free-grilly-<uuid8>.local` — no need to look up the IP address.
 * **Probe Flexibility:**
     * **Custom Probe Configuration:** Manually configure support for various NTC thermistor probes by entering their specific resistance (kΩ at reference temperature), reference temperature (°C), and Beta coefficient value.
     * **Pre-configured Probes:** Includes ready-to-use settings for popular probes like the Ikea Fantast.
+* **Temperature History & ETA:** Each probe records a rolling 10-minute history. The web UI shows a live sparkline graph per probe card. An estimated time-to-target (ETA) is calculated via linear regression and shown in both the web UI and on the LCD.
+* **Web Alarm + Mute:** A sticky alarm banner appears when any probe triggers. Browser notifications are fired when the tab is in the background. A Mute button silences the alarm via `POST /api/alarm/mute`.
 * **Over-the-Air (OTA) Updates:** Easily update the firmware wirelessly through the web interface once the initial flashing is done.
-* **Local REST API:** Provides a RESTful API endpoint on the device for integration with custom scripts, home automation systems, or other applications.
-* * **MQTT support:** All data (grill status/probes/settings) are sent to a mqtt topic. You can also configure probes and settings via mqtt.
+* **Automated CI Releases:** GitHub Actions builds and publishes OTA and Full-flash binaries automatically for every version tag. See [Updating Firmware](#updating-firmware-ota).
+* **Local REST API:** Provides a RESTful API endpoint on the device for integration with custom scripts, home automation systems, or other applications. See [API documentation](#api-documentation).
+* **MQTT support:** All data (grill status/probes/settings) are sent to a mqtt topic. You can also configure probes and settings via mqtt.
   * [Mqtt documentation](docs/mqtt.md)
+* **Extended Battery Life:** WiFi Modem-Sleep and Dynamic Frequency Scaling (DFS) reduce idle current significantly without affecting probe measurement accuracy.
 * **Battery Management:** Includes functional battery monitoring and management based on the device's hardware.
 * **Button Functionality:** The side button works for powering the device on/off and performing a factory reset (via long 10 seconds press).
 * **Persistent Settings:** All your configuration settings are saved directly on the device's non-volatile memory.
 
 ## Apps and integrations
 
-- An Iphone app created by @rogiernl: https://testflight.apple.com/join/wYTte6sP
+- An iPhone app created by @rogiernl: https://testflight.apple.com/join/wYTte6sP
+- **Android app:** API contract and architecture proposal are documented in [`docs/android_app.md`](docs/android_app.md). The app is built separately using the REST API described there.
 
 ## API documentation
 
-- Api documentation is include in the [openapi.yaml file](docs/openapi.yaml)
-- You can also view this [online](https://editor-next.swagger.io/?url=https://raw.githubusercontent.com/epiecs/free-grilly/refs/heads/master/docs/openapi.yaml)
+- API documentation is available as an [OpenAPI 3.1 spec](docs/openapi.yaml).
+- View interactively: [Swagger Editor](https://editor-next.swagger.io/?url=https://raw.githubusercontent.com/BattloXX/free-grilly/refs/heads/master/docs/openapi.yaml)
+- New endpoints in v25.06: `/api/probes/history`, `POST /api/alarm/mute`, `/api/info`
+
+### Modifying the web UI
+
+HTML pages live in `html_source/`. After editing, regenerate the embedded C headers:
+
+```bash
+python3 tools/generate_web_assets.py
+```
+
+This compresses CSS/JS with gzip (saves ~130 KB Flash) and updates `lib/Website/*.h`. Run `pio run` afterwards.
 
 ## Todo
 
@@ -102,14 +119,25 @@ For installation please refer to the [Flashing guide](docs/how_to_flash.md)
 
 ## Updating Firmware (OTA)
 
-Once Free-Grilly is installed, you can update to newer versions wirelessly:
+Release binaries are built automatically by GitHub Actions when a version tag is pushed.
+Both an **OTA binary** (`*-ota.bin`) and a **full flash binary** (`*-full.bin`) are attached
+to each [GitHub Release](https://github.com/BattloXX/free-grilly/releases).
 
-  1. Download the latest `free-grilly-yyyy-mm-dd.bin` from Releases.
-  2. Access the web interface.
-  3. Go to the 'Update' page.
-  4. Upload the downloaded `.bin` file.
-  5. Wait for the device to update.
-  6. Once the update is done you will have to boot the device by holding the button.
+**OTA update (recommended — no cable needed):**
+
+  1. Download the latest `free-grilly-<version>-ota.bin` from the Releases page.
+  2. Open the web interface in your browser.
+  3. Go to the **Update** page.
+  4. Upload the downloaded `-ota.bin` file.
+  5. Wait for the device to update and reboot.
+
+**Full flash (fresh install or recovery):**
+
+```bash
+esptool.py --chip esp32 --port /dev/ttyUSB0 write_flash 0x0 free-grilly-<version>-full.bin
+```
+
+See [`docs/how_to_flash.md`](docs/how_to_flash.md) for detailed flashing instructions.
 
 ## Supported probes
 

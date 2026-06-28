@@ -84,4 +84,7 @@ namespace config{
     extern int screen_timeout_minutes;
     extern int backlight_timeout_minutes;
     extern int backlight_brightness;
+
+    // mDNS
+    extern String mdns_hostname;
 }

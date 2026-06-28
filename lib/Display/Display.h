@@ -96,8 +96,20 @@ private:
     */
     float get_temp(int connectedProbe);
     /**
+    *   @brief Phase 2: get alarm flag for a probe
+    *   @param connectedProbe probe number
+    *   @return true if probe is in alarm state
+    */
+    bool get_alarm(int connectedProbe);
+    /**
+    *   @brief Phase 2: get ETA seconds for a probe
+    *   @param connectedProbe probe number
+    *   @return seconds to target, or -1 if unknown
+    */
+    long get_eta_seconds(int connectedProbe);
+    /**
     *	@brief Checks how many probes are connected
-    *	@return number of probes connected 
+    *	@return number of probes connected
     *   @return vector of connected probes
     */
     std::pair<int, std::vector<int>> get_connected_probes(void);

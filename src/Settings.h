@@ -160,8 +160,14 @@ namespace config{
     // ***********************************
 
     int screen_timeout_minutes          = 0;
-    int backlight_timeout_minutes       = 0;
+    int backlight_timeout_minutes       = 3; // 3 min default; 0 = never (battery saving for new installs)
     int backlight_brightness            = 5;
+
+    // ***********************************
+    // * mDNS
+    // ***********************************
+
+    String mdns_hostname                = ""; // Set at runtime: free-grilly-<short-uuid>
 }
 
 namespace grill{
@@ -180,6 +186,12 @@ namespace grill{
 
     int battery_percentage              = 0;
     bool battery_charging               = false;
+
+    // ***********************************
+    // * Alarm (global summary flag)
+    // ***********************************
+
+    bool alarm_active                   = false; // true when any probe is in alarm state
 
     // ***********************************
     // * Buzzer
