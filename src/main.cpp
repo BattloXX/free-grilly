@@ -184,9 +184,14 @@ void task_webserver(void* pvParameters) {
     if (MDNS.begin(config::mdns_hostname.c_str())) {
         MDNS.addService("http", "tcp", 80);
         MDNS.addService("free-grilly", "tcp", 80);
+        // TXT records on _http._tcp (legacy / web browsers)
         MDNS.addServiceTxt("http", "tcp", "uuid", config::grill_uuid.c_str());
         MDNS.addServiceTxt("http", "tcp", "name", config::grill_name.c_str());
         MDNS.addServiceTxt("http", "tcp", "fw",   config::grill_firmware_version.c_str());
+        // TXT records on _free-grilly._tcp — Android app reads "uuid" from this service type
+        MDNS.addServiceTxt("free-grilly", "tcp", "uuid", config::grill_uuid.c_str());
+        MDNS.addServiceTxt("free-grilly", "tcp", "name", config::grill_name.c_str());
+        MDNS.addServiceTxt("free-grilly", "tcp", "fw",   config::grill_firmware_version.c_str());
         Serial.println("mDNS started: " + config::mdns_hostname + ".local");
     } else {
         Serial.println("mDNS: failed to start");
