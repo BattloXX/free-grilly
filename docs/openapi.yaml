@@ -354,6 +354,15 @@ components:
           default: 5
           minimum: 0
           maximum: 5
+        power_saving:
+          type: boolean
+          description: >
+            Battery power-saving mode. When true ("max battery"): WiFi modem-sleep,
+            reduced TX power, the setup SoftAP is shut down once the home network is
+            joined, slower probe polling and a default display timeout. When false
+            ("always reachable"): radio stays fully awake and the SoftAP keeps running.
+          example: true
+          default: true
         opengrill_server:
           type: string
           example: "opengrill.test.com"

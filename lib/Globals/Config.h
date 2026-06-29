@@ -85,6 +85,13 @@ namespace config{
     extern int backlight_timeout_minutes;
     extern int backlight_brightness;
 
+    // Power
+    // When true ("max battery"): WiFi modem-sleep, reduced TX power, SoftAP is shut
+    // down once connected to the home network, slower probe polling and a default
+    // display timeout. When false ("always reachable"): radio stays fully awake and
+    // the SoftAP keeps running so the device is reachable at any time.
+    extern bool power_saving;
+
     // mDNS
     extern String mdns_hostname;
 }

@@ -74,6 +74,8 @@ void GrillConfig::load_settings(){
 
     config::backlight_brightness      = config::settings_storage.getInt("backl_bright", 5);
 
+    config::power_saving              = config::settings_storage.getBool("power_saving", true);
+
     config::opengrill_server          = config::settings_storage.getString("opengrill_srv");
 
     config::mqtt_broker               = config::settings_storage.getString("mqtt_broker");
@@ -122,6 +124,7 @@ void GrillConfig::save_settings(){
     config::settings_storage.putInt("screen_to_mins", config::screen_timeout_minutes);
     config::settings_storage.putInt("backl_to_mins", config::backlight_timeout_minutes);
     config::settings_storage.putInt("backl_bright", config::backlight_brightness);
+    config::settings_storage.putBool("power_saving", config::power_saving);
 
     config::settings_storage.putString("opengrill_srv", config::opengrill_server);
 
@@ -204,6 +207,7 @@ void GrillConfig::initialize_settings(){
     config::settings_storage.putInt("screen_to_mins", config::screen_timeout_minutes);
     config::settings_storage.putInt("backl_to_mins", config::backlight_timeout_minutes);
     config::settings_storage.putInt("backl_bright", config::backlight_brightness);
+    config::settings_storage.putBool("power_saving", config::power_saving);
 
     config::settings_storage.putString("opengrill_srv", config::opengrill_server);
 
@@ -260,6 +264,8 @@ void GrillConfig::print_settings(){
     Serial.println(config::backlight_timeout_minutes);
     Serial.print("-- backlight_brightness: ");
     Serial.println(config::backlight_brightness);
+    Serial.print("-- power_saving: ");
+    Serial.println(config::power_saving);
 
     Serial.print("-- opengrill_server: ");
     Serial.println(config::opengrill_server);

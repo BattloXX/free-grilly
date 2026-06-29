@@ -107,15 +107,26 @@ bool disp::screen_pwr(status_type type){
 
 
 bool disp::display_update(void) {
-    if(is_display_updating) {return true;}  //* prevent mulitple simultanious display updates 
+    if(is_display_updating) {return true;}  //* prevent mulitple simultanious display updates
     is_display_updating = true;
-    if (config::backlight_timeout_minutes > 0 and millis_backlight_timeout + (config::backlight_timeout_minutes * 60000) < millis()) {
+
+    // Effective timeouts: an explicit user setting always wins. If the user left a timeout
+    // at 0 ("never") and power-saving is on, apply a sensible default so the backlight and
+    // LCD switch off on battery. In "always reachable" mode 0 stays "never".
+    int effective_backlight_to = config::backlight_timeout_minutes;
+    int effective_screen_to    = config::screen_timeout_minutes;
+    if (config::power_saving) {
+        if (effective_backlight_to == 0) effective_backlight_to = 3;
+        if (effective_screen_to == 0)    effective_screen_to    = 5;
+    }
+
+    if (effective_backlight_to > 0 and millis_backlight_timeout + (effective_backlight_to * 60000) < millis()) {
         screen_background_pwr(DISABLE);
     }
-    if (config::screen_timeout_minutes > 0 and millis_screen_timeout + (config::screen_timeout_minutes * 60000) < millis()) {
+    if (effective_screen_to > 0 and millis_screen_timeout + (effective_screen_to * 60000) < millis()) {
         screen_pwr(DISABLE);
         is_display_updating = false;
-        return true; 
+        return true;
     }
 
     // Phase 2: toggle alarm flash state every display update (1 s interval → 0.5 Hz blink)
@@ -126,7 +137,6 @@ bool disp::display_update(void) {
     }
 
     screen.clearBuffer();
-    delay(10);
     screen.drawLine(2, 7, 125, 7);
      
     // ***********************************
