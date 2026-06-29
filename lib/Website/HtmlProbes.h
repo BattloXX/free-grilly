@@ -531,8 +531,7 @@ const char HTML_PROBES[] = R"=====(
     <script src="bootstrap.min.js" type="text/javascript"></script>
     <script type="text/javascript">
 
-        //Only used during tests, the real implementation uses relative urls
-        const base_url = "";
+        const base_url = window.location.origin;
        
         e_advanced_settings                = document.getElementsByClassName("advanced-settings");
         e_enable_advanced_settings         = document.getElementById("enable-advanced-settings");

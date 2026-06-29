@@ -1,5 +1,4 @@
 const char HTML_ABOUT[] = R"=====(
-
 <!doctype html>
 <html lang="en">
     <head>  
@@ -77,8 +76,7 @@ const char HTML_ABOUT[] = R"=====(
     <script src="bootstrap.min.js" type="text/javascript"></script>
     <script type="text/javascript">
 
-        //Only used during tests, the real implementation uses relative urls
-        const base_url = "";
+        const base_url = window.location.origin;
          
         e_grill_wifi_connected = document.getElementById("grill_wifi_connected");
         e_grill_wifi_ip        = document.getElementById("grill_wifi_ip");
@@ -108,5 +106,4 @@ const char HTML_ABOUT[] = R"=====(
     </script>
   </body>
 </html>
-
 )=====";

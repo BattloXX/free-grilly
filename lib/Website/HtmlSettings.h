@@ -348,8 +348,7 @@ const char HTML_SETTINGS[] = R"=====(
     <script src="bootstrap.min.js" type="text/javascript"></script>
     <script type="text/javascript">
 
-        //Only used during tests, the real implementation uses relative urls
-        const base_url = "";
+        const base_url = window.location.origin;
 
         e_grill_name                = document.getElementById("grill_name");
 

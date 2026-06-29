@@ -75,8 +75,7 @@
     <script src="bootstrap.min.js" type="text/javascript"></script>
     <script type="text/javascript">
 
-        //Only used during tests, the real implementation uses relative urls
-        const base_url = "http://10.30.10.235";
+        const base_url = window.location.origin;
          
         e_grill_wifi_connected = document.getElementById("grill_wifi_connected");
         e_grill_wifi_ip        = document.getElementById("grill_wifi_ip");
