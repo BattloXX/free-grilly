@@ -153,7 +153,8 @@ uint16_t bat::i2cWriteBytes(uint8_t subAddress, uint8_t * src, uint8_t count) {
 pwr::pwr() {};
 
 bool pwr::init(void) {
-	ledcAttach(gpio::power_screen_backlight, gpio::pwm_screen_frequency, gpio::pwm_screen_resolution);
+	ledcSetup(gpio::pwm_screen_channel, gpio::pwm_screen_frequency, gpio::pwm_screen_resolution);
+	ledcAttachPin(gpio::power_screen_backlight, gpio::pwm_screen_channel);
 	setScreenBrightness(config::backlight_brightness);
 	pinMode(gpio::power_adc_circuit, OUTPUT);
 	pinMode(gpio::power_probes, OUTPUT);
@@ -181,7 +182,7 @@ bool pwr::setScreenBrightness(int brightness) {
 
 	// Convert brightness from 0-5 to 0-255 with a min/max setting
 	if (brightness == 0) {
-		ledcWrite(gpio::power_screen_backlight, 0);
+		ledcWrite(gpio::pwm_screen_channel, 0);
 		return true;
 	}
 
@@ -193,7 +194,7 @@ bool pwr::setScreenBrightness(int brightness) {
 		brightness = 255;
 	}
 
-	ledcWrite(gpio::power_screen_backlight, brightness);
+	ledcWrite(gpio::pwm_screen_channel, brightness);
 	return true;
 }
 

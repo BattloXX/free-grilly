@@ -528,9 +528,10 @@ void task_screen(void* pvParameters) {
     Serial.println("Launching task :: SCREEN");
     delay(5);   //Give FreeRtos a chance to properly schedule the task
 
-    //pinMode(gpio::power_screen_backlight, OUTPUT);
-    //digitalWrite(gpio::power_screen_backlight, HIGH);
-
+    // Ensure LEDC PWM is configured before display.init() calls setScreenBrightness().
+    // task_battery also calls power.init() via power.startup(), but both tasks start
+    // concurrently — calling init() here eliminates the race without side effects.
+    power.init();
     display.init();
 
     for (;;) {
