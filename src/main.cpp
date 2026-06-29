@@ -125,10 +125,7 @@ void setup() {
     delay(100);             // Delay for stability
     WiFi.mode(WIFI_AP_STA); // AP + STATION
 
-    // Phase 1: Use modem sleep instead of disabling power save entirely.
-    // The radio idles between DTIM beacons → ~80 % reduction in idle radio current.
-    // STA connection is maintained; MQTT/HTTP polling latency is unaffected.
-    WiFi.setSleep(WIFI_PS_MIN_MODEM);
+    WiFi.setSleep(false); // Keep radio always-on for stable incoming HTTP connections
 
     start_local_ap();
     delay(1000);            //Needed to give the power rail time to adjust
