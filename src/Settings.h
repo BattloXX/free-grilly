@@ -160,7 +160,7 @@ namespace config{
     // ***********************************
 
     int screen_timeout_minutes          = 0;
-    int backlight_timeout_minutes       = 3; // 3 min default; 0 = never (battery saving for new installs)
+    int backlight_timeout_minutes       = 0; // 0 = never timeout (original default; user can change in settings)
     int backlight_brightness            = 5;
 
     // ***********************************
