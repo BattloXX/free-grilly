@@ -15,6 +15,7 @@ void JsonUtilities::load_json_status(char *buffer){
 
     jsondoc["name"]               = config::grill_name;
     jsondoc["unique_id"]          = config::grill_uuid;
+    jsondoc["uuid"]               = config::grill_uuid;         // Android app compat alias
     jsondoc["firmware_version"]   = config::grill_firmware_version;
     jsondoc["battery_percentage"] = grill::battery_percentage;
     jsondoc["battery_charging"]   = grill::battery_charging;
@@ -29,6 +30,7 @@ void JsonUtilities::load_json_status(char *buffer){
     // Helper lambda to fill one probe object (includes alarm + eta_seconds)
     auto fill_probe = [](JsonObject obj, int id, Probe& p){
         obj["probe_id"]            = id;
+        obj["id"]                  = id;     // Android app compat alias
         obj["name"]                = p.name;
         obj["temperature"]         = p.temperature;
         obj["minimum_temperature"] = p.minimum_temperature;
@@ -57,6 +59,7 @@ void JsonUtilities::load_json_settings(char* buffer){
     jsondoc.clear();
 
     jsondoc["name"]                      = config::grill_name;
+    jsondoc["grill_name"]                = config::grill_name;  // Android app compat alias
     jsondoc["uuid"]                      = config::grill_uuid;
     jsondoc["firmware_version"]          = config::grill_firmware_version;
 
@@ -117,8 +120,12 @@ jsonResult JsonUtilities::save_json_settings(char* raw_json){
         return {false, "backlight_timeout_minutes should be > 0"};
     }
 
-    // Data ingress
-    config::grill_name                = json_data["name"].as<String>();
+    // Data ingress — accept both "grill_name" (Android app) and "name" (web UI / legacy)
+    if (json_data["grill_name"].is<const char*>() && json_data["grill_name"].as<String>().length() > 0) {
+        config::grill_name            = json_data["grill_name"].as<String>();
+    } else {
+        config::grill_name            = json_data["name"].as<String>();
+    }
 
     config::temperature_unit          = json_data["temperature_unit"].as<String>();
     config::beep_enabled              = json_data["beep_enabled"];
@@ -165,98 +172,101 @@ jsonResult JsonUtilities::save_json_settings(char* raw_json){
 void JsonUtilities::load_json_probes(char* buffer){
     jsondoc.clear();
 
+    // Note: each probe object emits both legacy keys (probe_id, probe_type) consumed by the
+    // firmware's own web UI AND the Android app's keys (id, type). The app uses ignoreUnknownKeys
+    // so the legacy keys are silently skipped; the web UI only reads the legacy keys.
     JsonObject doc_0 = jsondoc.add<JsonObject>();
-    doc_0["probe_id"] = 1;
+    doc_0["probe_id"] = 1; doc_0["id"] = 1;
     doc_0["temperature"] = grill::probe_1.temperature;
     doc_0["name"] = grill::probe_1.name;
     doc_0["minimum_temperature"] = grill::probe_1.minimum_temperature;
     doc_0["target_temperature"] = grill::probe_1.target_temperature;
     doc_0["connected"] = grill::probe_1.connected;
-    doc_0["probe_type"] = grill::probe_1.type;
+    doc_0["probe_type"] = grill::probe_1.type; doc_0["type"] = grill::probe_1.type;
     doc_0["reference_kohm"] = grill::probe_1.reference_kohm;
     doc_0["reference_celcius"] = grill::probe_1.reference_celcius;
     doc_0["reference_beta"] = grill::probe_1.reference_beta;
 
     JsonObject doc_1 = jsondoc.add<JsonObject>();
-    doc_1["probe_id"] = 2;
+    doc_1["probe_id"] = 2; doc_1["id"] = 2;
     doc_1["temperature"] = grill::probe_2.temperature;
     doc_1["name"] = grill::probe_2.name;
     doc_1["minimum_temperature"] = grill::probe_2.minimum_temperature;
     doc_1["target_temperature"] = grill::probe_2.target_temperature;
     doc_1["connected"] = grill::probe_2.connected;
-    doc_1["probe_type"] = grill::probe_2.type;
+    doc_1["probe_type"] = grill::probe_2.type; doc_1["type"] = grill::probe_2.type;
     doc_1["reference_kohm"] = grill::probe_2.reference_kohm;
     doc_1["reference_celcius"] = grill::probe_2.reference_celcius;
     doc_1["reference_beta"] = grill::probe_2.reference_beta;
 
     JsonObject doc_2 = jsondoc.add<JsonObject>();
-    doc_2["probe_id"] = 3;
+    doc_2["probe_id"] = 3; doc_2["id"] = 3;
     doc_2["temperature"] = grill::probe_3.temperature;
     doc_2["name"] = grill::probe_3.name;
     doc_2["minimum_temperature"] = grill::probe_3.minimum_temperature;
     doc_2["target_temperature"] = grill::probe_3.target_temperature;
     doc_2["connected"] = grill::probe_3.connected;
-    doc_2["probe_type"] = grill::probe_3.type;
+    doc_2["probe_type"] = grill::probe_3.type; doc_2["type"] = grill::probe_3.type;
     doc_2["reference_kohm"] = grill::probe_3.reference_kohm;
     doc_2["reference_celcius"] = grill::probe_3.reference_celcius;
     doc_2["reference_beta"] = grill::probe_3.reference_beta;
 
     JsonObject doc_3 = jsondoc.add<JsonObject>();
-    doc_3["probe_id"] = 4;
+    doc_3["probe_id"] = 4; doc_3["id"] = 4;
     doc_3["temperature"] = grill::probe_4.temperature;
     doc_3["name"] = grill::probe_4.name;
     doc_3["minimum_temperature"] = grill::probe_4.minimum_temperature;
     doc_3["target_temperature"] = grill::probe_4.target_temperature;
     doc_3["connected"] = grill::probe_4.connected;
-    doc_3["probe_type"] = grill::probe_4.type;
+    doc_3["probe_type"] = grill::probe_4.type; doc_3["type"] = grill::probe_4.type;
     doc_3["reference_kohm"] = grill::probe_4.reference_kohm;
     doc_3["reference_celcius"] = grill::probe_4.reference_celcius;
     doc_3["reference_beta"] = grill::probe_4.reference_beta;
 
     JsonObject doc_4 = jsondoc.add<JsonObject>();
-    doc_4["probe_id"] = 5;
+    doc_4["probe_id"] = 5; doc_4["id"] = 5;
     doc_4["temperature"] = grill::probe_5.temperature;
     doc_4["name"] = grill::probe_5.name;
     doc_4["minimum_temperature"] = grill::probe_5.minimum_temperature;
     doc_4["target_temperature"] = grill::probe_5.target_temperature;
     doc_4["connected"] = grill::probe_5.connected;
-    doc_4["probe_type"] = grill::probe_5.type;
+    doc_4["probe_type"] = grill::probe_5.type; doc_4["type"] = grill::probe_5.type;
     doc_4["reference_kohm"] = grill::probe_5.reference_kohm;
     doc_4["reference_celcius"] = grill::probe_5.reference_celcius;
     doc_4["reference_beta"] = grill::probe_5.reference_beta;
 
     JsonObject doc_5 = jsondoc.add<JsonObject>();
-    doc_5["probe_id"] = 6;
+    doc_5["probe_id"] = 6; doc_5["id"] = 6;
     doc_5["temperature"] = grill::probe_6.temperature;
     doc_5["name"] = grill::probe_6.name;
     doc_5["minimum_temperature"] = grill::probe_6.minimum_temperature;
     doc_5["target_temperature"] = grill::probe_6.target_temperature;
     doc_5["connected"] = grill::probe_6.connected;
-    doc_5["probe_type"] = grill::probe_6.type;
+    doc_5["probe_type"] = grill::probe_6.type; doc_5["type"] = grill::probe_6.type;
     doc_5["reference_kohm"] = grill::probe_6.reference_kohm;
     doc_5["reference_celcius"] = grill::probe_6.reference_celcius;
     doc_5["reference_beta"] = grill::probe_6.reference_beta;
 
     JsonObject doc_6 = jsondoc.add<JsonObject>();
-    doc_6["probe_id"] = 7;
+    doc_6["probe_id"] = 7; doc_6["id"] = 7;
     doc_6["temperature"] = grill::probe_7.temperature;
     doc_6["name"] = grill::probe_7.name;
     doc_6["minimum_temperature"] = grill::probe_7.minimum_temperature;
     doc_6["target_temperature"] = grill::probe_7.target_temperature;
     doc_6["connected"] = grill::probe_7.connected;
-    doc_6["probe_type"] = grill::probe_7.type;
+    doc_6["probe_type"] = grill::probe_7.type; doc_6["type"] = grill::probe_7.type;
     doc_6["reference_kohm"] = grill::probe_7.reference_kohm;
     doc_6["reference_celcius"] = grill::probe_7.reference_celcius;
     doc_6["reference_beta"] = grill::probe_7.reference_beta;
 
     JsonObject doc_7 = jsondoc.add<JsonObject>();
-    doc_7["probe_id"] = 8;
+    doc_7["probe_id"] = 8; doc_7["id"] = 8;
     doc_7["temperature"] = grill::probe_8.temperature;
     doc_7["name"] = grill::probe_8.name;
     doc_7["minimum_temperature"] = grill::probe_8.minimum_temperature;
     doc_7["target_temperature"] = grill::probe_8.target_temperature;
     doc_7["connected"] = grill::probe_8.connected;
-    doc_7["probe_type"] = grill::probe_8.type;
+    doc_7["probe_type"] = grill::probe_8.type; doc_7["type"] = grill::probe_8.type;
     doc_7["reference_kohm"] = grill::probe_8.reference_kohm;
     doc_7["reference_celcius"] = grill::probe_8.reference_celcius;
     doc_7["reference_beta"] = grill::probe_8.reference_beta;
@@ -272,11 +282,15 @@ jsonResult JsonUtilities::save_json_probes(char* raw_json){
 
     for (JsonObject item : jsondoc.as<JsonArray>()) {
 
-        int    probe_id            = item["probe_id"];
+        // Accept both "id" (Android app) and "probe_id" (legacy web UI)
+        int    probe_id            = item["id"] | item["probe_id"].as<int>();
         String name                = item["name"];
         float  minimum_temperature = item["minimum_temperature"];
         float  target_temperature  = item["target_temperature"];
-        String probe_type          = item["probe_type"].as<String>();
+        // Accept both "type" (Android app) and "probe_type" (legacy web UI)
+        String probe_type          = item["type"].is<const char*>()
+                                         ? item["type"].as<String>()
+                                         : item["probe_type"].as<String>();
         int    reference_kohm      = item["reference_kohm"];
         int    reference_celcius   = item["reference_celcius"];
         int    reference_beta      = item["reference_beta"];
@@ -531,19 +545,23 @@ void JsonUtilities::load_json_wifiscan(char* buffer){
 
         scanned_network["ssid"]            = WiFi.SSID(network_nr).c_str();
         scanned_network["signal_strength"] = WiFi.RSSI(network_nr);
+        scanned_network["rssi"]            = WiFi.RSSI(network_nr); // Android app compat alias
 
+        const char* auth_str = "unknown";
         switch (WiFi.encryptionType(network_nr)) {
-            case WIFI_AUTH_OPEN:            scanned_network["auth_method"] = "open";            break;
-            case WIFI_AUTH_WEP:             scanned_network["auth_method"] = "wep";             break;
-            case WIFI_AUTH_WPA_PSK:         scanned_network["auth_method"] = "wpa_psk";         break;
-            case WIFI_AUTH_WPA2_PSK:        scanned_network["auth_method"] = "wpa2_psk";        break;
-            case WIFI_AUTH_WPA_WPA2_PSK:    scanned_network["auth_method"] = "wpa_wpa2_psk";    break;
-            case WIFI_AUTH_WPA2_ENTERPRISE: scanned_network["auth_method"] = "wpa2_enterprise"; break;
-            case WIFI_AUTH_WPA3_PSK:        scanned_network["auth_method"] = "wpa3_psk";        break;
-            case WIFI_AUTH_WPA2_WPA3_PSK:   scanned_network["auth_method"] = "wpa2_wpa3_psk";   break;
-            case WIFI_AUTH_WAPI_PSK:        scanned_network["auth_method"] = "wpapi_psk";       break;
-            default:                        scanned_network["auth_method"] = "unknown";         break;
+            case WIFI_AUTH_OPEN:            auth_str = "open";            break;
+            case WIFI_AUTH_WEP:             auth_str = "wep";             break;
+            case WIFI_AUTH_WPA_PSK:         auth_str = "wpa_psk";         break;
+            case WIFI_AUTH_WPA2_PSK:        auth_str = "wpa2_psk";        break;
+            case WIFI_AUTH_WPA_WPA2_PSK:    auth_str = "wpa_wpa2_psk";    break;
+            case WIFI_AUTH_WPA2_ENTERPRISE: auth_str = "wpa2_enterprise";  break;
+            case WIFI_AUTH_WPA3_PSK:        auth_str = "wpa3_psk";        break;
+            case WIFI_AUTH_WPA2_WPA3_PSK:   auth_str = "wpa2_wpa3_psk";   break;
+            case WIFI_AUTH_WAPI_PSK:        auth_str = "wpapi_psk";       break;
+            default:                        auth_str = "unknown";         break;
         }
+        scanned_network["auth_method"]  = auth_str;
+        scanned_network["encryption"]   = auth_str; // Android app compat alias
     }
     // Free memory
     WiFi.scanDelete();
@@ -575,6 +593,8 @@ void JsonUtilities::load_json_history(char* buffer, size_t buf_size) {
         Probe& p         = *probe_list[i];
         JsonObject obj   = probes.add<JsonObject>();
         obj["probe_id"]  = i + 1;
+        obj["id"]        = i + 1;    // Android app compat alias (required field)
+        obj["name"]      = p.name;   // Android app compat (required field)
         obj["connected"] = p.connected;
         JsonArray arr    = obj["history"].to<JsonArray>();
         int count        = p.get_history(tmp, 60);

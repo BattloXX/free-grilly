@@ -116,6 +116,7 @@ void get_api_info(){
     doc["uuid"]             = config::grill_uuid;
     doc["name"]             = config::grill_name;
     doc["firmware_version"] = config::grill_firmware_version;
+    doc["firmware"]         = config::grill_firmware_version; // Android app compat alias
     doc["mdns_hostname"]    = config::mdns_hostname;
 
     JsonArray caps = doc["capabilities"].to<JsonArray>();
