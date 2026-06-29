@@ -61,6 +61,17 @@ void GrillConfig::load_settings(){
     config::screen_timeout_minutes    = config::settings_storage.getInt("screen_to_mins");
     config::backlight_timeout_minutes = config::settings_storage.getInt("backl_to_mins");
 
+    // One-time migration: BattloXX commit 6f500e6 changed the backlight default from 0 to 3.
+    // OTA installs that got that default keep 3 in NVS even after the code default was reverted.
+    // Reset to 0 once if the value is still 3 and we have not already migrated this device.
+    if (!config::settings_storage.isKey("backl_migr_v1")) {
+        if (config::backlight_timeout_minutes == 3) {
+            config::backlight_timeout_minutes = 0;
+            config::settings_storage.putInt("backl_to_mins", 0);
+        }
+        config::settings_storage.putBool("backl_migr_v1", true);
+    }
+
     config::backlight_brightness      = config::settings_storage.getInt("backl_bright", 5);
 
     config::opengrill_server          = config::settings_storage.getString("opengrill_srv");
