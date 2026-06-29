@@ -61,14 +61,17 @@ This project provides alternative firmware for the Grilleye Max thermometer. Aft
 
 ## Apps and integrations
 
-- An iPhone app created by @rogiernl: https://testflight.apple.com/join/wYTte6sP
-- **Android app:** API contract and architecture proposal are documented in [`docs/android_app.md`](docs/android_app.md). The app is built separately using the REST API described there.
+| Platform | App | Install |
+|----------|-----|---------|
+| **Android** | [Free-Grilly Android](https://github.com/BattloXX/Free-Grilly-Android) — native app with live temperatures, history graph, alarm notifications and mDNS auto-discovery | [Latest APK](https://github.com/BattloXX/Free-Grilly-Android/releases/latest) |
+| **iOS** | iPhone app by @rogiernl | [TestFlight](https://testflight.apple.com/join/wYTte6sP) |
 
 ## API documentation
 
 - API documentation is available as an [OpenAPI 3.1 spec](docs/openapi.yaml).
 - View interactively: [Swagger Editor](https://editor-next.swagger.io/?url=https://raw.githubusercontent.com/BattloXX/free-grilly/refs/heads/master/docs/openapi.yaml)
-- New endpoints in v25.06: `/api/probes/history`, `POST /api/alarm/mute`, `/api/info`
+- Endpoints: `/api/grill`, `/api/probes`, `/api/probes/history`, `/api/settings`, `/api/info`, `/api/wifiscan`, `POST /api/alarm/mute`
+- Full spec: [openapi.yaml](docs/openapi.yaml) · [Swagger UI](https://editor-next.swagger.io/?url=https://raw.githubusercontent.com/BattloXX/free-grilly/refs/heads/master/docs/openapi.yaml)
 
 ### Modifying the web UI
 
@@ -296,12 +299,12 @@ We welcome contributions to help improve Free-Grilly! Whether it's fixing bugs, 
 
 Here's how you can contribute:
 
-* **Reporting Issues:** If you find a bug or have an idea for a new feature, please check the existing [Issues](https://github.com/epiecs/free-grilly/issues) first. If it hasn't been reported, please open a new issue, providing as much detail as possible.
-  **Submitting Changes (Pull Requests):** If you'd like to contribute code or documentation changes:
+* **Reporting Issues:** If you find a bug or have an idea for a new feature, please check the existing [Issues](https://github.com/BattloXX/free-grilly/issues) first. If it hasn't been reported, please open a new issue with as much detail as possible.
+* **Submitting Changes (Pull Requests):** If you'd like to contribute code or documentation changes:
     1.  Fork the repository.
     2.  Create a new branch for your changes (`git checkout -b feature/your-feature-name`).
     3.  Make your changes and commit them with clear messages.
     4.  Push your branch to your fork (`git push origin feature/your-feature-name`).
-    5.  Open a [Pull Request](https://github.com/epiecs/free-grilly/pulls) against the main branch of this repository.
+    5.  Open a [Pull Request](https://github.com/BattloXX/free-grilly/pulls) against the `master` branch of this repository.
 
 Thank you for considering contributing to Free-Grilly!
