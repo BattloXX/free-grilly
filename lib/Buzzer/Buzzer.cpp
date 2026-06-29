@@ -5,55 +5,50 @@
 #include "Config.h"
 #include "Gpio.h"
 
-Buzzer::Buzzer(){    
-    ledcSetup(gpio::pwm_buzzer_channel, gpio::pwm_buzzer_frequency, gpio::pwm_buzzer_resolution);
-}
+Buzzer::Buzzer(){}
 
 void Buzzer::beep(int beeps_amount, int duration){
-    ledcAttachPin(gpio::buzzer, gpio::pwm_buzzer_channel);
-    
-    for (int beep = 0; beep < beeps_amount; beep++){
-        ledcWriteTone(gpio::pwm_buzzer_channel, Buzzer::beep_frequency);
-        ledcWrite(gpio::pwm_buzzer_channel, Buzzer::volume);
-        delay(duration);  
-        ledcWriteTone(gpio::pwm_buzzer_channel, 0);
-        ledcWrite(gpio::pwm_buzzer_channel, 0);
-        delay(duration);  
-    } 
+    ledcAttach(gpio::buzzer, gpio::pwm_buzzer_frequency, gpio::pwm_buzzer_resolution);
 
-    ledcDetachPin(gpio::buzzer);
+    for (int beep = 0; beep < beeps_amount; beep++){
+        ledcWriteTone(gpio::buzzer, Buzzer::beep_frequency);
+        ledcWrite(gpio::buzzer, Buzzer::volume);
+        delay(duration);
+        ledcWriteTone(gpio::buzzer, 0);
+        ledcWrite(gpio::buzzer, 0);
+        delay(duration);
+    }
+
+    ledcDetach(gpio::buzzer);
 }
 
 void Buzzer::play_all_notes(){
-    
-    ledcAttachPin(gpio::buzzer, gpio::pwm_buzzer_channel);
-    
+    ledcAttach(gpio::buzzer, gpio::pwm_buzzer_frequency, gpio::pwm_buzzer_resolution);
+
     Serial.println(sizeof Buzzer::notes / sizeof Buzzer::notes[0]);
 
     for(int note = 0; note < 21; note++){
         Serial.println(Buzzer::notes[note]);
-
-        ledcWriteTone(gpio::pwm_buzzer_channel, Buzzer::notes[note]);
+        ledcWriteTone(gpio::buzzer, Buzzer::notes[note]);
         delay(300);
     }
-    
-    ledcDetachPin(gpio::buzzer);
+
+    ledcDetach(gpio::buzzer);
 }
 
 void Buzzer::play_cucaracha(){
-
-    ledcAttachPin(gpio::buzzer, gpio::pwm_buzzer_channel);
+    ledcAttach(gpio::buzzer, gpio::pwm_buzzer_frequency, gpio::pwm_buzzer_resolution);
 
     for(int note = 0; note < 34; note++){
-        ledcWriteTone(gpio::pwm_buzzer_channel, Buzzer::cucaracha_notes[note]);
-        ledcWrite(gpio::pwm_buzzer_channel, Buzzer::volume);
-        delay(Buzzer::cucaracha_durations[note]);  
-        ledcWriteTone(gpio::pwm_buzzer_channel, 0);
-        ledcWrite(gpio::pwm_buzzer_channel, 0);
-        delay(Buzzer::cucaracha_wait[note]);   
+        ledcWriteTone(gpio::buzzer, Buzzer::cucaracha_notes[note]);
+        ledcWrite(gpio::buzzer, Buzzer::volume);
+        delay(Buzzer::cucaracha_durations[note]);
+        ledcWriteTone(gpio::buzzer, 0);
+        ledcWrite(gpio::buzzer, 0);
+        delay(Buzzer::cucaracha_wait[note]);
     }
 
-    ledcDetachPin(gpio::buzzer);
+    ledcDetach(gpio::buzzer);
 }
 
 void Buzzer::set_volume(int volume){

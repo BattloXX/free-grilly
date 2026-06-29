@@ -51,7 +51,7 @@ void GrillConfig::load_settings(){
     config::grill_name                = config::settings_storage.getString("grill_name", "Free-Grilly");
     config::grill_uuid                = config::settings_storage.getString("grill_uuid", "");
 
-    config::temperature_unit          = config::settings_storage.getString("temp_unit");
+    config::temperature_unit          = config::settings_storage.getString("temp_unit", "celcius");
     config::beep_enabled              = config::settings_storage.getBool("beep_enabled");
     config::beep_on_ready             = config::settings_storage.getBool("beep_on_ready");
     config::beep_outside_target       = config::settings_storage.getBool("beep_out_targ");
