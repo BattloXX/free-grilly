@@ -184,12 +184,6 @@ public:
 	 */
 	bool enable_power_management(void);
 
-private:
-
-	// ***********************************
-	// * Power Init functions
-	// ***********************************
-
 	/**
 	*	@brief initializes the GPIO pins to output.
 	*	@return true if GPIO pins are set correctly
