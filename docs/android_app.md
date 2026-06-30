@@ -281,11 +281,13 @@ Content-Type: application/json
 }
 ```
 
-> **`power_saving`** (boolean, default `true`) — battery mode toggle. `true` = "max battery"
-> (WiFi modem-sleep, reduced TX power, the setup SoftAP is dropped once the home network
-> is joined, slower polling). `false` = "always reachable" (radio stays awake, SoftAP keeps
-> running). Note: in `power_saving` mode the device is **only** reachable over the home Wi-Fi
-> after setup — the `FreeGrilly_…` AP is no longer available until a factory reset.
+> **`power_saving`** (boolean, default `false`) — battery mode toggle. `false` = "always
+> reachable" (radio fully awake, SoftAP stays up) — the default, for reliable connectivity.
+> `true` = "max battery": WiFi modem-sleep (standard, does not break reachability) and the
+> setup SoftAP is stopped once the home network is joined. TX power stays at full in both
+> modes. Note: in `power_saving` mode the `FreeGrilly_…` setup AP is no longer available
+> after the home network is joined — re-provisioning needs a reboot/factory reset; the
+> device stays reachable over the home Wi-Fi (mDNS) throughout.
 >
 > **`power_saving` does not touch the display.** The screen/backlight timeouts are controlled
 > *only* by `backlight_timeout_minutes` / `screen_timeout_minutes`, where `0` means "never"

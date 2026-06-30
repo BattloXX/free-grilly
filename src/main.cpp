@@ -126,11 +126,11 @@ void setup() {
     WiFi.mode(WIFI_AP_STA); // AP + STATION (AP is dropped later in power-saving mode once connected)
 
     if (config::power_saving) {
-        // "Max battery": let the radio sleep between DTIM beacons and lower TX power.
-        // HTTP polling (~1 s) stays responsive. The SoftAP is shut down once the home
-        // network is joined (see task_webserver) to stop continuous beaconing.
+        // "Max battery": let the radio sleep between DTIM beacons (this is the standard
+        // Arduino modem-sleep, safe for incoming HTTP). TX power is left at full — dropping
+        // it to 11 dBm made connections flaky/unreachable. The SoftAP is stopped once the
+        // home network is joined (see task_webserver) to cut continuous beaconing.
         WiFi.setSleep(WIFI_PS_MIN_MODEM);
-        WiFi.setTxPower(WIFI_POWER_11dBm);
     } else {
         // "Always reachable": keep the radio fully awake for stable incoming HTTP
         // connections and keep the SoftAP running permanently.
@@ -210,17 +210,18 @@ void task_webserver(void* pvParameters) {
         web::webserver.handleClient();
         ElegantOTA.loop();
 
-        // Power-saving: once on the home network, drop the SoftAP and run STA-only.
-        // Continuous AP beaconing is a major drain; STA-only mDNS keeps the app working.
+        // Power-saving: once on the home network, stop the SoftAP to cut continuous
+        // beaconing. Use softAPdisconnect (NOT WiFi.mode(WIFI_STA)) — switching mode at
+        // runtime reinitialises the netif and kills the mDNS responder the app discovers
+        // the device through. softAPdisconnect stops the AP while STA + mDNS stay up.
         // Re-provisioning then needs a reboot/reset (acceptable in "max battery" mode).
         if (config::power_saving && !softap_disabled && grill::wifi_connected) {
-            Serial.println("Power-saving: WiFi connected — disabling SoftAP (STA-only)");
-            WiFi.mode(WIFI_STA);
-            WiFi.setTxPower(WIFI_POWER_11dBm);
+            Serial.println("Power-saving: WiFi connected — stopping SoftAP (STA + mDNS stay up)");
+            WiFi.softAPdisconnect(true);
             softap_disabled = true;
         }
 
-        delay(20);   // 20 ms yield (was 2 ms) — far fewer CPU wakeups; HTTP stays responsive
+        delay(5);   // small yield; the synchronous WebServer must service sockets promptly
     }
 }
 
