@@ -491,6 +491,12 @@ void task_probes(void* pvParameters) {
     unsigned long last_history_ms = 0;
     const unsigned long HISTORY_INTERVAL_MS = 10000;
 
+    // Coarse history for long cooks (Pulled Pork etc.): sampled in lockstep across
+    // all probes at an adaptive interval (starts at 60 s, doubles as the buffers fill
+    // — see Probe::push_coarse). Because every probe is pushed together they stay in
+    // lockstep and share a single interval (read from probe_1 for the timer/API).
+    unsigned long last_coarse_ms = 0;
+
     for (;;) {
         // Read probes and also check if beeps/alarms/.. are needed
         grill::probe_1.calculate_temperature(); grill::probe_1.check_temperature_status();
@@ -519,6 +525,22 @@ void task_probes(void* pvParameters) {
             if (grill::probe_6.connected) grill::probe_6.push_history(grill::probe_6.celcius);
             if (grill::probe_7.connected) grill::probe_7.push_history(grill::probe_7.celcius);
             if (grill::probe_8.connected) grill::probe_8.push_history(grill::probe_8.celcius);
+        }
+
+        // Coarse history — push all probes together at the current adaptive interval so
+        // they stay in lockstep (one shared interval). No extra ADC work: the temperature
+        // was already measured above; this only writes the buffer, and ever less often.
+        unsigned long coarse_interval_ms = (unsigned long)grill::probe_1.coarse_interval() * 1000UL;
+        if (millis() - last_coarse_ms >= coarse_interval_ms) {
+            last_coarse_ms = millis();
+            grill::probe_1.push_coarse(grill::probe_1.celcius);
+            grill::probe_2.push_coarse(grill::probe_2.celcius);
+            grill::probe_3.push_coarse(grill::probe_3.celcius);
+            grill::probe_4.push_coarse(grill::probe_4.celcius);
+            grill::probe_5.push_coarse(grill::probe_5.celcius);
+            grill::probe_6.push_coarse(grill::probe_6.celcius);
+            grill::probe_7.push_coarse(grill::probe_7.celcius);
+            grill::probe_8.push_coarse(grill::probe_8.celcius);
         }
 
         // Slower polling in power-saving mode — grill temperatures change slowly, so this

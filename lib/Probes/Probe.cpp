@@ -256,6 +256,29 @@ void Probe::push_history(float temp_c){
     if (history_count < HISTORY_SIZE) history_count++;
 }
 
+void Probe::push_coarse(float temp_c){
+    // When the coarse buffer is full, halve its resolution: keep every 2nd
+    // chronological sample and double the interval. Memory stays fixed; the
+    // covered time window doubles each compaction.
+    if (coarse_count >= COARSE_SIZE) {
+        int16_t tmp[COARSE_SIZE];
+        int base = (coarse_head - coarse_count + COARSE_SIZE) % COARSE_SIZE;
+        int kept = 0;
+        for (int i = 0; i < coarse_count; i += 2) {
+            int idx     = (base + i) % COARSE_SIZE;
+            tmp[kept++]  = coarse[idx];
+        }
+        for (int i = 0; i < kept; i++) coarse[i] = tmp[i];
+        coarse_head      = kept;
+        coarse_count     = kept;
+        coarse_interval_s *= 2;
+    }
+
+    coarse[coarse_head] = (int16_t)(temp_c * 10.0f);
+    coarse_head = (coarse_head + 1) % COARSE_SIZE;
+    if (coarse_count < COARSE_SIZE) coarse_count++;
+}
+
 long Probe::seconds_to_target() const {
     if (!connected || target_temperature <= 0.0f || history_count < 6) return -1;
 
@@ -300,6 +323,18 @@ int Probe::get_history(int16_t* out, int max_count) const {
     for (int i = 0; i < count; i++){
         int idx = (base + i) % HISTORY_SIZE;
         out[i]  = history[idx];
+    }
+    return count;
+}
+
+int Probe::get_coarse(int16_t* out, int max_count) const {
+    if (coarse_count == 0 || max_count <= 0) return 0;
+    int count = (coarse_count < max_count) ? coarse_count : max_count;
+    int base  = (coarse_head - coarse_count + COARSE_SIZE) % COARSE_SIZE;
+
+    for (int i = 0; i < count; i++){
+        int idx = (base + i) % COARSE_SIZE;
+        out[i]  = coarse[idx];
     }
     return count;
 }

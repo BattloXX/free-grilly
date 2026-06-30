@@ -15,8 +15,10 @@
 // Set this to config::json_buffer_size, cant do this dynamically
 char api_json_buffer[3000];
 
-// Separate larger buffer for the history endpoint (8 probes × up to 60 samples)
-char api_history_buffer[4096];
+// History endpoint worst case: 8 probes × (180 fine + 180 coarse) int16 values plus
+// JSON structure ≈ 22 KB. Allocated on the heap per request (and freed) instead of a
+// permanently reserved static buffer.
+static const size_t HISTORY_BUFFER_SIZE = 24576;
 
 void setup_api_routes()
 {
@@ -73,8 +75,14 @@ void cors_api_probes(){
 }
 
 void get_api_probes_history(){
-    config::json_handler.load_json_history(api_history_buffer, sizeof(api_history_buffer));
-    web::webserver.send(200, "application/json", api_history_buffer);
+    char* buffer = (char*) malloc(HISTORY_BUFFER_SIZE);
+    if (buffer == nullptr) {
+        web::webserver.send(503, "application/json", "{\"error\":\"out of memory\"}");
+        return;
+    }
+    config::json_handler.load_json_history(buffer, HISTORY_BUFFER_SIZE);
+    web::webserver.send(200, "application/json", buffer);
+    free(buffer);
 }
 
 void get_api_settings(){

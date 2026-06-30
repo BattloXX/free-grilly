@@ -591,7 +591,10 @@ void JsonUtilities::load_json_wifiscan(char* buffer){
 void JsonUtilities::load_json_history(char* buffer, size_t buf_size) {
     jsondoc.clear();
 
-    jsondoc["interval_seconds"] = 10; // matches Probe::HISTORY_INTERVAL_S
+    jsondoc["interval_seconds"]        = 10; // fine tier — matches Probe::HISTORY_INTERVAL_S
+    // Coarse tier interval is adaptive (doubles as the buffers fill). All probes are
+    // sampled in lockstep, so probe_1's value represents the whole device.
+    jsondoc["coarse_interval_seconds"] = grill::probe_1.coarse_interval();
 
     JsonArray probes = jsondoc["probes"].to<JsonArray>();
 
@@ -600,7 +603,7 @@ void JsonUtilities::load_json_history(char* buffer, size_t buf_size) {
         &grill::probe_5, &grill::probe_6, &grill::probe_7, &grill::probe_8
     };
 
-    int16_t tmp[60];
+    int16_t tmp[180];
     for (int i = 0; i < 8; i++) {
         Probe& p         = *probe_list[i];
         JsonObject obj   = probes.add<JsonObject>();
@@ -608,9 +611,14 @@ void JsonUtilities::load_json_history(char* buffer, size_t buf_size) {
         obj["id"]        = i + 1;    // Android app compat alias (required field)
         obj["name"]      = p.name;   // Android app compat (required field)
         obj["connected"] = p.connected;
-        JsonArray arr    = obj["history"].to<JsonArray>();
-        int count        = p.get_history(tmp, 60);
+
+        JsonArray arr    = obj["history"].to<JsonArray>();        // fine tier (recent detail)
+        int count        = p.get_history(tmp, 180);
         for (int j = 0; j < count; j++) arr.add(tmp[j]);
+
+        JsonArray carr   = obj["history_coarse"].to<JsonArray>(); // coarse tier (whole cook)
+        int ccount       = p.get_coarse(tmp, 180);
+        for (int j = 0; j < ccount; j++) carr.add(tmp[j]);
     }
 
     jsondoc.shrinkToFit();
