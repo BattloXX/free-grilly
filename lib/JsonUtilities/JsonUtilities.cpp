@@ -74,6 +74,7 @@ void JsonUtilities::load_json_settings(char* buffer){
     jsondoc["screen_timeout_minutes"]    = config::screen_timeout_minutes;
     jsondoc["backlight_timeout_minutes"] = config::backlight_timeout_minutes;
     jsondoc["backlight_brightness"]      = config::backlight_brightness;
+    jsondoc["power_saving"]              = config::power_saving;
 
     jsondoc["opengrill_server"]          = config::opengrill_server;
 
@@ -120,45 +121,56 @@ jsonResult JsonUtilities::save_json_settings(char* raw_json){
         return {false, "backlight_timeout_minutes should be > 0"};
     }
 
-    // Data ingress — accept both "grill_name" (Android app) and "name" (web UI / legacy)
+    // Merge semantics: only overwrite a config field when its key is actually present
+    // in the incoming JSON. The Android app sends a *partial* settings object (only the
+    // handful of fields it wants to change); previously every absent key was deserialized
+    // to "" / 0 and clobbered the stored value — wiping local_ap_*, wifi_* IP config,
+    // mqtt_*, brightness and timeouts. These helpers preserve unspecified fields.
+    auto set_str  = [&](const char* key, String& dst){ if (!json_data[key].isNull()) dst = json_data[key].as<String>(); };
+    auto set_int  = [&](const char* key, int& dst)   { if (!json_data[key].isNull()) dst = json_data[key].as<int>();    };
+    auto set_bool = [&](const char* key, bool& dst)  { if (!json_data[key].isNull()) dst = json_data[key].as<bool>();   };
+
+    // Data ingress — accept both "grill_name" (Android app) and "name" (web UI / legacy).
+    // Leave the name untouched when neither key carries a non-empty value.
     if (json_data["grill_name"].is<const char*>() && json_data["grill_name"].as<String>().length() > 0) {
         config::grill_name            = json_data["grill_name"].as<String>();
-    } else {
+    } else if (json_data["name"].is<const char*>() && json_data["name"].as<String>().length() > 0) {
         config::grill_name            = json_data["name"].as<String>();
     }
 
-    config::temperature_unit          = json_data["temperature_unit"].as<String>();
-    config::beep_enabled              = json_data["beep_enabled"];
-    config::beep_volume               = json_data["beep_volume"];
-    config::beep_degrees_before       = json_data["beep_degrees_before"];
-    config::beep_outside_target       = json_data["beep_outside_target"];
-    config::beep_on_ready             = json_data["beep_on_ready"];
-    config::cucaracha_enabled         = json_data["cucaracha_enabled"];
+    set_str("temperature_unit",   config::temperature_unit);
+    set_bool("beep_enabled",      config::beep_enabled);
+    set_int("beep_volume",        config::beep_volume);
+    set_int("beep_degrees_before", config::beep_degrees_before);
+    set_bool("beep_outside_target", config::beep_outside_target);
+    set_bool("beep_on_ready",     config::beep_on_ready);
+    set_bool("cucaracha_enabled", config::cucaracha_enabled);
 
-    config::screen_timeout_minutes    = json_data["screen_timeout_minutes"];
-    config::backlight_timeout_minutes = json_data["backlight_timeout_minutes"];
-    config::backlight_brightness      = json_data["backlight_brightness"];
+    set_int("screen_timeout_minutes",    config::screen_timeout_minutes);
+    set_int("backlight_timeout_minutes", config::backlight_timeout_minutes);
+    set_int("backlight_brightness",      config::backlight_brightness);
+    set_bool("power_saving",             config::power_saving);
 
-    config::opengrill_server          = json_data["opengrill_server"].as<String>();
+    set_str("opengrill_server", config::opengrill_server);
 
-    config::mqtt_broker               = json_data["mqtt_broker"].as<String>();
-    config::mqtt_port                 = json_data["mqtt_port"];
-    config::mqtt_topic                = json_data["mqtt_topic"].as<String>();
-    config::mqtt_user                 = json_data["mqtt_user"].as<String>();
-    config::mqtt_password             = json_data["mqtt_password"].as<String>();
+    set_str("mqtt_broker",   config::mqtt_broker);
+    set_int("mqtt_port",     config::mqtt_port);
+    set_str("mqtt_topic",    config::mqtt_topic);
+    set_str("mqtt_user",     config::mqtt_user);
+    set_str("mqtt_password", config::mqtt_password);
 
-    config::wifi_ssid                 = json_data["wifi_ssid"].as<String>();
-    config::wifi_password             = json_data["wifi_password"].as<String>();
-    config::wifi_ip                   = json_data["wifi_ip"].as<String>();
-    config::wifi_subnet               = json_data["wifi_subnet"].as<String>();
-    config::wifi_gateway              = json_data["wifi_gateway"].as<String>();
-    config::wifi_dns                  = json_data["wifi_dns"].as<String>();
+    set_str("wifi_ssid",     config::wifi_ssid);
+    set_str("wifi_password", config::wifi_password);
+    set_str("wifi_ip",       config::wifi_ip);
+    set_str("wifi_subnet",   config::wifi_subnet);
+    set_str("wifi_gateway",  config::wifi_gateway);
+    set_str("wifi_dns",      config::wifi_dns);
 
-    config::local_ap_ssid             = json_data["local_ap_ssid"].as<String>();
-    config::local_ap_password         = json_data["local_ap_password"].as<String>();
-    config::local_ap_ip               = json_data["local_ap_ip"].as<String>();
-    config::local_ap_subnet           = json_data["local_ap_subnet"].as<String>();
-    config::local_ap_gateway          = json_data["local_ap_gateway"].as<String>();
+    set_str("local_ap_ssid",     config::local_ap_ssid);
+    set_str("local_ap_password", config::local_ap_password);
+    set_str("local_ap_ip",       config::local_ap_ip);
+    set_str("local_ap_subnet",   config::local_ap_subnet);
+    set_str("local_ap_gateway",  config::local_ap_gateway);
 
     // Set default value for empty topics
     if(config::mqtt_topic.length() == 0){

@@ -35,7 +35,7 @@ Two connectivity phases exist:
 
 | Phase | Network | Purpose |
 |-------|---------|---------|
-| **Setup** | Grilleye AP (`FreeGrilly_<uuid8>`) | Provision home Wi-Fi credentials & device name |
+| **Setup** | Grilleye AP (`FreeGrilly_<mac6>`) | Provision home Wi-Fi credentials & device name |
 | **Operate** | Home Wi-Fi | Real-time temperature monitoring & control |
 
 ---
@@ -45,8 +45,9 @@ Two connectivity phases exist:
 ### 2.1 Connect to the Device AP
 
 The Grilleye creates its own access point when not yet connected to a home network
-(or when reset). Default SSID follows the pattern `FreeGrilly_<uuid8>`, where `<uuid8>`
-is the first 8 characters of the device UUID.
+(or when reset). Default SSID follows the pattern `FreeGrilly_<mac6>`, where `<mac6>`
+is the last 6 hex digits of the device's Wi-Fi MAC address (see `generate_hostname()`
+in `lib/Util/Util.cpp`).
 
 **Android steps:**
 1. Ask the user to manually connect to the `FreeGrilly_…` Wi-Fi **or** use
@@ -264,9 +265,20 @@ Content-Type: application/json
   "wifi_ssid":               "HomeNetwork",
   "temperature_unit":        "celcius",
   "backlight_timeout_minutes": 3,
-  "screen_timeout_minutes":  0
+  "screen_timeout_minutes":  0,
+  "power_saving":            true
 }
 ```
+
+> **`power_saving`** (boolean, default `true`) — battery mode toggle. `true` = "max battery"
+> (WiFi modem-sleep, reduced TX power, the setup SoftAP is dropped once the home network
+> is joined, slower polling, default display timeout). `false` = "always reachable" (radio
+> stays awake, SoftAP keeps running). Note: in `power_saving` mode the device is **only**
+> reachable over the home Wi-Fi after setup — the `FreeGrilly_…` AP is no longer available
+> until a factory reset.
+
+> **Partial updates are safe:** `POST /api/settings` only changes the fields present in the
+> body; omitted fields keep their current value.
 
 ### 4.5 `POST /api/settings` — Update Device Settings
 

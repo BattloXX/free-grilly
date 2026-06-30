@@ -1,5 +1,42 @@
 # Changelog (firmware only)
 
+## Unreleased
+
+### Battery / Power
+- **`power_saving` setting** (default `true`): a real toggle between "max battery" and
+  "always reachable". Persisted in NVS, exposed via `GET`/`POST /api/settings`.
+- **WiFi modem-sleep actually applied**: the radio now uses `WIFI_PS_MIN_MODEM` in
+  power-saving mode (previously the code still ran `setSleep(false)` despite the
+  25.06.28 changelog claim). Single largest battery saving.
+- **SoftAP shut down after connect** (power-saving mode): once the home network is
+  joined the device switches to STA-only, stopping continuous AP beaconing. Re-running
+  setup then requires a reboot/factory reset.
+- **Reduced WiFi TX power** (`WIFI_POWER_11dBm`) in power-saving mode.
+- **Display auto-off in power-saving mode**: when the user leaves the timeouts at 0,
+  power-saving applies a default 3-min backlight / 5-min screen timeout. Explicit user
+  settings always take precedence. (The raw default stays 0; the earlier 25.06.28 "3 min
+  default" claim was reverted in the code and is intentionally *not* reintroduced.)
+- **Lower task wakeup rates**: webserver loop `delay(2)`→`delay(20)`; MQTT/Opengrill
+  tasks idle at 1 s when no broker is configured (were 50 ms); battery poll 1 s→5 s;
+  probe poll 500 ms→1 s in power-saving mode. Removed a stray `delay(10)` from the
+  display render path.
+
+### Bug fixes
+- **`POST /api/settings` no longer wipes config**: settings are now merged — only fields
+  present in the request body are updated. Previously a partial update (e.g. from the
+  Android app) reset `local_ap_*`, `wifi_*` IP config, `mqtt_*`, brightness and timeouts
+  to empty/zero, which could break the setup AP and blank the display.
+
+### Docs
+- Corrected the setup AP SSID format in `docs/android_app.md` to `FreeGrilly_<mac6>`
+  (last 6 hex of the Wi-Fi MAC), matching `generate_hostname()`.
+- Documented `power_saving` in `docs/openapi.yaml` and `docs/android_app.md`.
+
+> **Note on 25.06.28 below:** the "Battery / Power" items in that entry were partly
+> aspirational — `WIFI_PS_MIN_MODEM` was not actually in the source and the backlight
+> default had been reverted to 0. The Unreleased entry above reflects what the firmware
+> now really does.
+
 ## 25.06.28
 
 ### Battery / Power

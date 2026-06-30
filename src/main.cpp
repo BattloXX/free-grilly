@@ -123,9 +123,19 @@ void setup() {
 
     WiFi.disconnect(true);  // Remove stale settings
     delay(100);             // Delay for stability
-    WiFi.mode(WIFI_AP_STA); // AP + STATION
+    WiFi.mode(WIFI_AP_STA); // AP + STATION (AP is dropped later in power-saving mode once connected)
 
-    WiFi.setSleep(false); // Keep radio always-on for stable incoming HTTP connections
+    if (config::power_saving) {
+        // "Max battery": let the radio sleep between DTIM beacons and lower TX power.
+        // HTTP polling (~1 s) stays responsive. The SoftAP is shut down once the home
+        // network is joined (see task_webserver) to stop continuous beaconing.
+        WiFi.setSleep(WIFI_PS_MIN_MODEM);
+        WiFi.setTxPower(WIFI_POWER_11dBm);
+    } else {
+        // "Always reachable": keep the radio fully awake for stable incoming HTTP
+        // connections and keep the SoftAP running permanently.
+        WiFi.setSleep(false);
+    }
 
     start_local_ap();
     delay(1000);            //Needed to give the power rail time to adjust
@@ -194,10 +204,23 @@ void task_webserver(void* pvParameters) {
         Serial.println("mDNS: failed to start");
     }
 
+    bool softap_disabled = false;
+
     while (true){
         web::webserver.handleClient();
         ElegantOTA.loop();
-        delay(2);   // Phase 1: 2 ms (was 1 ms) — tiny CPU yield improvement
+
+        // Power-saving: once on the home network, drop the SoftAP and run STA-only.
+        // Continuous AP beaconing is a major drain; STA-only mDNS keeps the app working.
+        // Re-provisioning then needs a reboot/reset (acceptable in "max battery" mode).
+        if (config::power_saving && !softap_disabled && grill::wifi_connected) {
+            Serial.println("Power-saving: WiFi connected — disabling SoftAP (STA-only)");
+            WiFi.mode(WIFI_STA);
+            WiFi.setTxPower(WIFI_POWER_11dBm);
+            softap_disabled = true;
+        }
+
+        delay(20);   // 20 ms yield (was 2 ms) — far fewer CPU wakeups; HTTP stays responsive
     }
 }
 
@@ -250,7 +273,9 @@ void task_opengrill(void* pvParameters) {
             config::opengrill_client.reconnect();
         }
 
-        delay(50);
+        // Idle slowly when no broker is configured (the common case) instead of
+        // waking 20×/s for nothing.
+        delay(opengrill_server == "" ? 1000 : 50);
     }
 }
 
@@ -303,7 +328,9 @@ void task_mqtt(void* pvParameters) {
             config::mqtt_client.reconnect();
         }
 
-        delay(50);
+        // Idle slowly when no broker is configured (the common case) instead of
+        // waking 20×/s for nothing.
+        delay(mqtt_broker == "" ? 1000 : 50);
     }
 }
 
@@ -458,10 +485,11 @@ void task_probes(void* pvParameters) {
     pinMode(gpio::mux_selector_b, OUTPUT);
     pinMode(gpio::mux_selector_c, OUTPUT);
 
-    // Phase 3: history sampling counter.
-    // One sample every 20 cycles (20 × 500 ms = 10 s = HISTORY_INTERVAL_S)
-    int history_counter = 0;
-    const int HISTORY_CYCLES = 20;
+    // Phase 3: history sampling — one sample every 10 s (HISTORY_INTERVAL_S). Timed off
+    // millis() instead of a cycle counter so it stays correct when power-saving changes
+    // the probe poll period at runtime.
+    unsigned long last_history_ms = 0;
+    const unsigned long HISTORY_INTERVAL_MS = 10000;
 
     for (;;) {
         // Read probes and also check if beeps/alarms/.. are needed
@@ -480,10 +508,9 @@ void task_probes(void* pvParameters) {
                               grill::probe_5.alarm || grill::probe_6.alarm ||
                               grill::probe_7.alarm || grill::probe_8.alarm;
 
-        // Phase 3: push temperature history every HISTORY_CYCLES ticks
-        history_counter++;
-        if (history_counter >= HISTORY_CYCLES) {
-            history_counter = 0;
+        // Phase 3: push temperature history every 10 s
+        if (millis() - last_history_ms >= HISTORY_INTERVAL_MS) {
+            last_history_ms = millis();
             if (grill::probe_1.connected) grill::probe_1.push_history(grill::probe_1.celcius);
             if (grill::probe_2.connected) grill::probe_2.push_history(grill::probe_2.celcius);
             if (grill::probe_3.connected) grill::probe_3.push_history(grill::probe_3.celcius);
@@ -494,7 +521,9 @@ void task_probes(void* pvParameters) {
             if (grill::probe_8.connected) grill::probe_8.push_history(grill::probe_8.celcius);
         }
 
-        delay(500);
+        // Slower polling in power-saving mode — grill temperatures change slowly, so this
+        // halves ADC/MUX/SPI activity and CPU duty without hurting usability.
+        delay(config::power_saving ? 1000 : 500);
     }
 }
 
@@ -516,7 +545,9 @@ void task_battery(void* pvParameters) {
     for (;;) {
         battery.read_battery();
 
-        delay(1000);
+        // SoC and charge flag change slowly; polling every 5 s is plenty and avoids
+        // an I2C transaction + CPU wakeup every second.
+        delay(5000);
     }
 }
 

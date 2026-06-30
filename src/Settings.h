@@ -164,6 +164,15 @@ namespace config{
     int backlight_brightness            = 5;
 
     // ***********************************
+    // * Power
+    // ***********************************
+
+    // Default to "max battery". The device is battery powered, so power saving is
+    // the sensible out-of-the-box behaviour; users who want it permanently reachable
+    // can disable this in the settings ("always reachable" mode). See lib/Globals/Config.h.
+    bool power_saving                   = true;
+
+    // ***********************************
     // * mDNS
     // ***********************************
 
