@@ -135,6 +135,7 @@ void get_api_info(){
     caps.add("mdns");
     caps.add("alarm_mute");
     caps.add("eta");
+    caps.add("power_saving");
 
     doc.shrinkToFit();
     serializeJson(doc, api_json_buffer, sizeof(api_json_buffer));

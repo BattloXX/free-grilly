@@ -162,7 +162,7 @@ GET http://<resolved-ip>/api/info
   "name":          "My BBQ",
   "firmware":      "25.06.28",
   "mdns_hostname": "free-grilly-a1b2c3d4",
-  "capabilities":  ["history", "alarm_mute", "eta"]
+  "capabilities":  ["history", "alarm_mute", "eta", "power_saving"]
 }
 ```
 
@@ -255,6 +255,17 @@ Content-Type: application/json
 
 **Response:** `{ "success": true }`
 
+> **⚠️ Full replace, not a merge.** Unlike `POST /api/settings`, each probe object **replaces
+> the probe's entire config**. Any field you omit is reset to its default — an absent `type`
+> becomes `"custom"` and absent `reference_kohm`/`reference_celcius`/`reference_beta` become
+> `0`, which corrupts the thermistor calibration. To change only the target (or only the
+> name), **read-modify-write**: `GET /api/probes`, take that probe object, change the one
+> field, and POST it back unchanged otherwise. `GET /api/probes` also returns
+> `reference_kohm`, `reference_celcius` and `reference_beta` for exactly this purpose. For
+> the built-in probe types (`grilleye_iris`, `ikea_fantast`, `maverick_et733`, `weber_igrill`)
+> the firmware restores the reference values from its table, so preserving `type` is enough;
+> for `"custom"` probes the reference values must be sent back too.
+
 ---
 
 ### 4.4 `GET /api/settings` — Device Settings
@@ -272,10 +283,14 @@ Content-Type: application/json
 
 > **`power_saving`** (boolean, default `true`) — battery mode toggle. `true` = "max battery"
 > (WiFi modem-sleep, reduced TX power, the setup SoftAP is dropped once the home network
-> is joined, slower polling, default display timeout). `false` = "always reachable" (radio
-> stays awake, SoftAP keeps running). Note: in `power_saving` mode the device is **only**
-> reachable over the home Wi-Fi after setup — the `FreeGrilly_…` AP is no longer available
-> until a factory reset.
+> is joined, slower polling). `false` = "always reachable" (radio stays awake, SoftAP keeps
+> running). Note: in `power_saving` mode the device is **only** reachable over the home Wi-Fi
+> after setup — the `FreeGrilly_…` AP is no longer available until a factory reset.
+>
+> **`power_saving` does not touch the display.** The screen/backlight timeouts are controlled
+> *only* by `backlight_timeout_minutes` / `screen_timeout_minutes`, where `0` means "never"
+> and is always honoured. (Earlier firmware let power-saving silently force a 3/5-min
+> display-off when these were 0, which looked like an unexpected shutdown — that is removed.)
 
 > **Partial updates are safe:** `POST /api/settings` only changes the fields present in the
 > body; omitted fields keep their current value.
@@ -347,7 +362,7 @@ Also send `OPTIONS /api/alarm/mute` is available for CORS pre-flight.
   "name":          "My BBQ",
   "firmware":      "25.06.28",
   "mdns_hostname": "free-grilly-a1b2c3d4",
-  "capabilities":  ["history", "alarm_mute", "eta"]
+  "capabilities":  ["history", "alarm_mute", "eta", "power_saving"]
 }
 ```
 

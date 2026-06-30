@@ -655,7 +655,7 @@ paths:
                     type: array
                     items:
                       type: string
-                    example: ["history", "alarm_mute", "eta"]
+                    example: ["history", "alarm_mute", "eta", "power_saving"]
 
   /wifiscan:
     get:

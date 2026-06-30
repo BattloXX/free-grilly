@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Power / Display fixes
+- **Display no longer switches off on its own.** Power-saving used to silently override a
+  "never" (0) display timeout with a 3-min backlight / 5-min screen-off default. Several
+  users read this as "the device turned itself off after a few minutes". The override is
+  removed: display timeouts are now governed purely by the user's explicit settings
+  (`backlight_timeout_minutes` / `screen_timeout_minutes`), where `0` always means "never".
+  Power-saving now affects only the Wi-Fi radio (modem sleep / reduced TX / SoftAP teardown),
+  never the screen.
+- **`power_saving` advertised in `GET /api/info` `capabilities`.** The Android app gates its
+  power-saving toggle on this flag, so the setting was previously invisible in the app even
+  though the firmware supported it. The toggle now appears automatically.
+
 ### History / Long cooks
 - **Two-tier temperature history** for long cooks (Pulled Pork etc.). The graph window is no
   longer capped at 10 minutes:
