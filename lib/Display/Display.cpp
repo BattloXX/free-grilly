@@ -110,15 +110,13 @@ bool disp::display_update(void) {
     if(is_display_updating) {return true;}  //* prevent mulitple simultanious display updates
     is_display_updating = true;
 
-    // Effective timeouts: an explicit user setting always wins. If the user left a timeout
-    // at 0 ("never") and power-saving is on, apply a sensible default so the backlight and
-    // LCD switch off on battery. In "always reachable" mode 0 stays "never".
+    // Display timeouts are governed purely by the user's explicit settings: 0 means
+    // "never" and is always respected. Power-saving does NOT blank the screen behind the
+    // user's back — it only affects the Wi-Fi radio (modem sleep / SoftAP teardown). A
+    // device left on "never" that switched its display off after a few minutes looked, to
+    // the user, like it had powered itself off; that silent override is intentionally gone.
     int effective_backlight_to = config::backlight_timeout_minutes;
     int effective_screen_to    = config::screen_timeout_minutes;
-    if (config::power_saving) {
-        if (effective_backlight_to == 0) effective_backlight_to = 3;
-        if (effective_screen_to == 0)    effective_screen_to    = 5;
-    }
 
     if (effective_backlight_to > 0 and millis_backlight_timeout + (effective_backlight_to * 60000) < millis()) {
         screen_background_pwr(DISABLE);
