@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+### History / Long cooks
+- **Two-tier temperature history** for long cooks (Pulled Pork etc.). The graph window is no
+  longer capped at 10 minutes:
+  - *Fine tier* — last ~30 min at 10 s resolution (recent detail).
+  - *Coarse tier* — the whole cook, sampled at an **adaptive interval** that starts at 60 s
+    and doubles whenever the buffer fills (covers 3 h → 6 h → 12 h → 24 h → 48 h …).
+  - Memory stays **fixed** (~720 B/probe, ≈5.8 KB total) regardless of cook length, and the
+    sampling rate *drops* over time → battery-neutral. The probe poll/ADC cadence is
+    unchanged.
+- **`GET /api/probes/history` extended** (backward compatible): adds top-level
+  `coarse_interval_seconds` and a per-probe `history_coarse` array. The endpoint buffer is
+  now heap-allocated per request (and freed) instead of a permanently reserved static buffer.
+
+## 26.06.30
+
 ### Battery / Power
 - **`power_saving` setting** (default `true`): a real toggle between "max battery" and
   "always reachable". Persisted in NVS, exposed via `GET`/`POST /api/settings`.

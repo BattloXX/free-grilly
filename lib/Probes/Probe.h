@@ -22,16 +22,31 @@ private:
 	bool has_beeped_outside   				   = false; // Has the probe beeped for being outside of the temperature range
 
 	// ***********************************
-	// * History ringbuffer (Phase 3)
-	// * 60 samples × 10 s interval = 10 min history
-	// * int16_t stores temperature × 10 → 0.1 °C resolution (~120 B/probe)
+	// * History — two-tier ring buffers for long cooks
+	// *
+	// * Fine tier:   180 samples × 10 s    = 30 min recent detail (~360 B/probe)
+	// * Coarse tier: 180 samples × adaptive = whole cook. When the coarse buffer
+	// *              fills it halves its resolution (keep every 2nd sample) and
+	// *              doubles the interval, so memory stays fixed while the window
+	// *              grows: 180×60 s = 3 h → 6 h → 12 h → 24 h → 48 h …
+	// *
+	// * int16_t stores temperature × 10 → 0.1 °C resolution.
+	// * Total ~720 B/probe (≈5.8 KB across 8 probes). No flash/NVS persistence.
 	// ***********************************
-	static const int HISTORY_SIZE        = 60;
-	static const int HISTORY_INTERVAL_S  = 10; // interval between samples
+	static const int HISTORY_SIZE        = 180;
+	static const int HISTORY_INTERVAL_S  = 10; // fine-tier interval between samples
 
-	int16_t      history[HISTORY_SIZE];  // ring buffer; value = celsius * 10
+	int16_t      history[HISTORY_SIZE];  // fine ring buffer; value = celsius * 10
 	int          history_head      = 0;  // next-write index
 	int          history_count     = 0;  // valid entries (0..HISTORY_SIZE)
+
+	static const int COARSE_SIZE         = 180;
+	static const int COARSE_INTERVAL_S   = 60; // coarse-tier *initial* interval (adaptive)
+
+	int16_t      coarse[COARSE_SIZE];    // coarse ring buffer; value = celsius * 10
+	int          coarse_head       = 0;  // next-write index
+	int          coarse_count      = 0;  // valid entries (0..COARSE_SIZE)
+	int          coarse_interval_s = COARSE_INTERVAL_S; // current interval, doubles on compaction
 
 	/**
 	 * @brief Selects the wanted probe via the MUX pinouts
@@ -101,12 +116,25 @@ public:
 	float calculate_temperature();
 
 	/**
-	 * @brief Add a temperature sample to the history ringbuffer.
+	 * @brief Add a temperature sample to the fine history ringbuffer.
 	 *        Should be called periodically (every HISTORY_INTERVAL_S seconds).
 	 *
 	 * @param temp_c Temperature in Celcius
 	 */
 	void push_history(float temp_c);
+
+	/**
+	 * @brief Add a temperature sample to the coarse history ringbuffer.
+	 *        Should be called every coarse_interval() seconds. When the buffer is
+	 *        full the resolution is halved (every 2nd sample kept) and the interval
+	 *        doubled, keeping memory fixed while the covered time window grows.
+	 *
+	 * @param temp_c Temperature in Celcius
+	 */
+	void push_coarse(float temp_c);
+
+	/** @brief Current coarse-tier sample interval in seconds (doubles over time). */
+	int coarse_interval() const { return coarse_interval_s; }
 
 	/**
 	 * @brief Estimate seconds remaining until target temperature is reached,
@@ -122,6 +150,13 @@ public:
 	 *        Values are celsius × 10 (int16_t).
 	 */
 	int get_history(int16_t* out, int max_count) const;
+
+	/**
+	 * @brief Copy up to `max_count` coarse history values (chronological order,
+	 *        oldest first) into the caller-supplied array. Returns the number of
+	 *        values written. Values are celsius × 10 (int16_t).
+	 */
+	int get_coarse(int16_t* out, int max_count) const;
 
 	/**
 	 * @brief Set the type of probe used.

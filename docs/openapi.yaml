@@ -533,11 +533,22 @@ paths:
     get:
       tags:
         - probes
-      summary: Temperature history per probe
+      summary: Temperature history per probe (two-tier)
       description: >
-        Returns the last ≤60 temperature readings per probe sampled every 10 seconds
-        (up to 10 minutes of history). Values are celsius × 10 (int16) to save bandwidth.
-        Divide by 10.0 to get °C. Disconnected probes return an empty history array.
+        Returns two time-uniform history tiers per probe so clients can show both recent
+        detail and the whole cook (e.g. multi-hour Pulled Pork) without unbounded memory:
+
+          * `history` — fine tier: last ≤180 readings sampled every `interval_seconds`
+            (10 s) → up to 30 minutes of recent detail.
+          * `history_coarse` — coarse tier: last ≤180 readings sampled every
+            `coarse_interval_seconds`. This interval is **adaptive**: it starts at 60 s and
+            doubles whenever the buffer fills (so memory stays fixed while the covered
+            window grows: 3 h → 6 h → 12 h → 24 h → 48 h …). Covers the whole cook.
+
+        Both tiers are time-uniform within themselves. The device has no wall clock — the
+        newest sample of each tier corresponds to ~now; walk backwards in steps of the
+        respective interval to place older samples in time. Values are celsius × 10 (int16,
+        divide by 10.0 for °C). Disconnected probes freeze (no new samples appended).
       responses:
         '200':
           description: OK
@@ -549,7 +560,14 @@ paths:
                   interval_seconds:
                     type: integer
                     example: 10
-                    description: Seconds between samples in the history arrays.
+                    description: Seconds between samples in the fine `history` array.
+                  coarse_interval_seconds:
+                    type: integer
+                    example: 60
+                    description: >
+                      Seconds between samples in the `history_coarse` array. Adaptive —
+                      starts at 60 and doubles as the coarse buffer fills. Shared by all
+                      probes (they are sampled in lockstep).
                   probes:
                     type: array
                     minItems: 8
@@ -565,10 +583,16 @@ paths:
                           example: Brisket
                         history:
                           type: array
-                          description: Temperature values as celsius × 10 (divide by 10.0 for °C)
+                          description: Fine tier — celsius × 10 (divide by 10.0 for °C)
                           items:
                             type: integer
                           example: [850, 855, 862, 870, 878, 887]
+                        history_coarse:
+                          type: array
+                          description: Coarse tier (whole cook) — celsius × 10 (divide by 10.0 for °C)
+                          items:
+                            type: integer
+                          example: [210, 405, 612, 770, 812, 845]
 
   /alarm/mute:
     post:

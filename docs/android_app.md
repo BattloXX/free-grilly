@@ -286,27 +286,40 @@ Same structure as GET response. Only fields present in the body are updated.
 
 ---
 
-### 4.6 `GET /api/probes/history` — Temperature History
+### 4.6 `GET /api/probes/history` — Temperature History (two-tier)
 
-Returns the last ≤60 readings per probe (sampled every 10 seconds, so ≤10 minutes of history).
-Values are **celsius × 10** (integer) to save bandwidth.
+Returns **two time-uniform tiers** per probe so a client can show both recent detail and the
+whole cook (multi-hour Pulled Pork etc.) with bounded memory. Values are **celsius × 10**
+(integer) to save bandwidth.
+
+- `history` — fine tier: last ≤180 readings every `interval_seconds` (10 s) → ~30 min detail.
+- `history_coarse` — coarse tier: last ≤180 readings every `coarse_interval_seconds`. That
+  interval is **adaptive** (starts at 60 s, doubles each time the buffer fills), so it covers
+  the whole cook (3 h → 6 h → 12 h → 24 h …) while memory stays fixed.
 
 ```json
 {
   "interval_seconds": 10,
+  "coarse_interval_seconds": 60,
   "probes": [
     {
-      "id":      1,
-      "name":    "Brisket",
-      "history": [850, 855, 862, 870, 878, 887]
+      "id":             1,
+      "name":           "Brisket",
+      "history":        [850, 855, 862, 870, 878, 887],
+      "history_coarse": [210, 405, 612, 770, 812, 845]
     }
     /* … */
   ]
 }
 ```
 
-**Usage:** divide each value by 10.0 to get °C.  
-For a richer graph seed: fetch once on app open, then extend client-side from `/api/grill` polling.
+**Usage:** divide each value by 10.0 to get °C. The device has no wall clock — treat the
+newest sample of each tier as ~now and walk backwards in steps of the respective interval to
+place older samples in time. For a durable, multi-hour graph: seed once on app open from both
+tiers (fine wins in the overlap), persist locally, and extend from `/api/grill` polling.
+
+> **Backward compatibility:** `coarse_interval_seconds` and `history_coarse` are additive —
+> older clients that read only `interval_seconds`/`history` keep working unchanged.
 
 ---
 
