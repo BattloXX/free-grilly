@@ -1,6 +1,6 @@
 # Changelog (firmware only)
 
-## Unreleased
+## 26.06.30-2
 
 ### Power / Display fixes
 - **Display no longer switches off on its own.** Power-saving used to silently override a
@@ -13,6 +13,8 @@
 - **`power_saving` advertised in `GET /api/info` `capabilities`.** The Android app gates its
   power-saving toggle on this flag, so the setting was previously invisible in the app even
   though the firmware supported it. The toggle now appears automatically.
+
+## 26.06.30-1
 
 ### History / Long cooks
 - **Two-tier temperature history** for long cooks (Pulled Pork etc.). The graph window is no
