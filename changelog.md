@@ -1,5 +1,26 @@
 # Changelog (firmware only)
 
+## 26.06.30-3
+
+### Connectivity / stability fixes
+Fixes for "the app can no longer connect", "the web interface keeps cutting out" and an
+unresponsive device — all caused by the power-saving mode being too aggressive (and on by
+default).
+
+- **`power_saving` now defaults to OFF** ("always reachable"). The device ships fully
+  reachable; battery mode is opt-in via the app (Settings → power saving). Devices that
+  already stored `power_saving = true` keep it, but it is now far less disruptive (below).
+- **Power-saving no longer cripples the radio.** It used to drop TX power to 11 dBm, which
+  made connections weak and flaky. TX power now stays at full; power-saving keeps only the
+  standard modem-sleep (the Arduino default), which does not break reachability.
+- **SoftAP is stopped with `softAPdisconnect()` instead of `WiFi.mode(WIFI_STA)`.** Switching
+  WiFi mode at runtime tore down the network interface and killed the mDNS responder the
+  app uses to find the device. Now the AP beaconing stops while STA + mDNS stay up.
+- **`GET /api/probes/history` uses a fixed static buffer** instead of a 24 KB `malloc` per
+  request. Under WiFi heap churn that allocation intermittently failed (503) and fragmented
+  the heap, which made the web server drop connections.
+- **Web server loop services sockets every 5 ms** (was 20 ms) for snappier HTTP.
+
 ## 26.06.30-2
 
 ### Power / Display fixes

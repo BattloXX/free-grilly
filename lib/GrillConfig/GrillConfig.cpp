@@ -74,7 +74,7 @@ void GrillConfig::load_settings(){
 
     config::backlight_brightness      = config::settings_storage.getInt("backl_bright", 5);
 
-    config::power_saving              = config::settings_storage.getBool("power_saving", true);
+    config::power_saving              = config::settings_storage.getBool("power_saving", false);
 
     config::opengrill_server          = config::settings_storage.getString("opengrill_srv");
 
