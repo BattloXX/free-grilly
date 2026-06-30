@@ -1,6 +1,6 @@
 # Changelog (firmware only)
 
-## Unreleased
+## 26.06.30-3
 
 ### Connectivity / stability fixes
 Fixes for "the app can no longer connect", "the web interface keeps cutting out" and an
