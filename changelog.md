@@ -1,5 +1,13 @@
 # Changelog (firmware only)
 
+## 26.07.01-1
+
+### Web interface — Energy & Diagnostics on the About page
+- The device web UI (`/about`) now shows an **Energy** section (battery %, charging,
+  measured cell voltage) and a **Diagnostics** section (last restart reason, last power-off
+  reason) directly on the device, above the Authors. Reads the existing `/api/grill` fields
+  added in 26.07.01; no API or behavior change.
+
 ## 26.07.01
 
 ### The device no longer turns itself off unexpectedly

@@ -61,6 +61,30 @@ const char HTML_ABOUT[] = R"=====(
             <div class="col-7" id="grill_firmware_version">Loading</div>
         </div>
 
+        <div class="row mt-3">
+            <h5>Energy</h5>
+        </div>
+        <div class="row mt-2">
+            <label class="col-5">Battery</label>
+            <div class="col-7" id="grill_battery">Loading</div>
+        </div>
+        <div class="row mt-2">
+            <label class="col-5">Cell voltage</label>
+            <div class="col-7" id="grill_battery_voltage">Loading</div>
+        </div>
+
+        <div class="row mt-3">
+            <h5>Diagnostics</h5>
+        </div>
+        <div class="row mt-2">
+            <label class="col-5">Last restart</label>
+            <div class="col-7" id="grill_last_reset">Loading</div>
+        </div>
+        <div class="row mt-2">
+            <label class="col-5">Last power-off</label>
+            <div class="col-7" id="grill_last_off">Loading</div>
+        </div>
+
         <div class="row mt-2">
             <h5>Authors</h5>
         </div>
@@ -82,7 +106,27 @@ const char HTML_ABOUT[] = R"=====(
         e_grill_wifi_ip        = document.getElementById("grill_wifi_ip");
         e_grill_uuid           = document.getElementById("grill_uuid");
         e_firmware_version     = document.getElementById("grill_firmware_version");
+        e_battery              = document.getElementById("grill_battery");
+        e_battery_voltage      = document.getElementById("grill_battery_voltage");
+        e_last_reset           = document.getElementById("grill_last_reset");
+        e_last_off             = document.getElementById("grill_last_off");
 
+        // Friendly labels for the firmware diagnostics codes (firmware >= 26.07.01).
+        const resetReasons = {
+            poweron:   "Power-on",
+            deepsleep: "Wake (button)",
+            brownout:  "Voltage drop (brownout)",
+            panic:     "Crash",
+            int_wdt:   "Watchdog",
+            task_wdt:  "Watchdog",
+            wdt:       "Watchdog",
+            sw:        "Software restart",
+        };
+        const offReasons = {
+            button:      "Button",
+            low_battery: "Battery protection (nearly empty)",
+            boot_gate:   "Power-on not confirmed",
+        };
 
         async function getSettings() {
             try {
@@ -94,6 +138,21 @@ const char HTML_ABOUT[] = R"=====(
                 e_grill_wifi_ip.textContent        = data['wifi_ip'];
                 e_grill_uuid.textContent           = data['unique_id'];
                 e_firmware_version.textContent     = data['firmware_version'];
+
+                // Energy
+                const pct = data['battery_percentage'];
+                const charging = data['battery_charging'] ? " · charging" : "";
+                e_battery.textContent = (pct === undefined ? "—" : pct + "%") + charging;
+
+                const mv = data['battery_millivolts'];
+                e_battery_voltage.textContent = (mv && mv > 0) ? (mv / 1000).toFixed(2) + " V" : "—";
+
+                // Diagnostics
+                const rr = data['last_reset_reason'] || "";
+                e_last_reset.textContent = resetReasons[rr] || rr || "—";
+
+                const or = data['last_off_reason'] || "";
+                e_last_off.textContent = offReasons[or] || or || "—";
 
 
             } catch (error) {
