@@ -92,6 +92,14 @@ namespace config{
     // the SoftAP keeps running so the device is reachable at any time.
     extern bool power_saving;
 
+    // Protective low-battery cutoff thresholds
+    extern int battery_cutoff_percent;
+    extern int battery_cutoff_millivolts;
+
+    // Diagnostics (populated at runtime)
+    extern String last_off_reason;
+    extern String last_reset_reason;
+
     // mDNS
     extern String mdns_hostname;
 }

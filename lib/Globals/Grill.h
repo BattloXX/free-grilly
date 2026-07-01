@@ -8,6 +8,7 @@ namespace grill {
     // Battery
     extern int battery_percentage;
     extern bool battery_charging;
+    extern int battery_millivolts;
 
     // Buzzer
     extern Buzzer buzzer;

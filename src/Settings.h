@@ -63,7 +63,7 @@ namespace config{
 
     String grill_name                   = "";
     String grill_uuid                   = "";
-    String grill_firmware_version       = "26.04.19";
+    String grill_firmware_version       = "26.07.01";
 
     String temperature_unit             = "celcius";
     bool beep_enabled                   = true;
@@ -173,6 +173,25 @@ namespace config{
     // app (Settings → power saving). See lib/Globals/Config.h.
     bool power_saving                   = false;
 
+    // Protective low-battery cutoff. The device otherwise runs until powered off by the
+    // button; it only shuts itself down here to protect the cell from deep discharge.
+    // A cutoff fires when NOT charging and either the fuel-gauge SoC drops to/below
+    // battery_cutoff_percent (a plausible, non-zero reading) OR the measured cell voltage
+    // drops to/below battery_cutoff_millivolts (hard backstop in case the gauge is
+    // miscalibrated). Several consecutive confirmations are required (see task_battery).
+    int battery_cutoff_percent          = 5;    // % state-of-charge
+    int battery_cutoff_millivolts       = 3200; // mV per cell
+
+    // ***********************************
+    // * Diagnostics (populated at runtime)
+    // ***********************************
+
+    // Why the device last powered off (persisted to NVS across a shutdown) and why it last
+    // reset (esp_reset_reason at boot). Surfaced via the status API to diagnose unexpected
+    // self-power-offs (e.g. "brownout"/"panic" vs. a deliberate "button"/"low_battery").
+    String last_off_reason              = "";
+    String last_reset_reason            = "";
+
     // ***********************************
     // * mDNS
     // ***********************************
@@ -196,6 +215,7 @@ namespace grill{
 
     int battery_percentage              = 0;
     bool battery_charging               = false;
+    int battery_millivolts              = 0; // measured cell voltage (mV), for diagnostics
 
     // ***********************************
     // * Alarm (global summary flag)

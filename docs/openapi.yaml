@@ -67,6 +67,26 @@ components:
           type: boolean
           example: true
           description: If the battery is charging
+        battery_millivolts:
+          type: integer
+          example: 3980
+          description: Measured cell voltage in mV (diagnostics; independent of the gauge SoC %)
+        last_off_reason:
+          type: string
+          example: button
+          description: >
+            Why the device last powered off, persisted across the shutdown. One of
+            "button" (2-10 s button press), "low_battery" (protective cutoff),
+            "boot_gate" (woken but the button was not held long enough to confirm power-on),
+            or empty if never recorded. Diagnostics for unexpected self-power-offs.
+        last_reset_reason:
+          type: string
+          example: brownout
+          description: >
+            The ESP32 reset reason at the last boot (esp_reset_reason): e.g. "poweron",
+            "deepsleep", "brownout", "panic", "int_wdt", "task_wdt", "sw", "unknown".
+            An unexpected value (brownout/panic/wdt) after the device recovered on its own
+            explains an apparent self-power-off.
         wifi_connected:
           type: boolean
           example: true
