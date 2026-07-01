@@ -19,6 +19,9 @@ void JsonUtilities::load_json_status(char *buffer){
     jsondoc["firmware_version"]   = config::grill_firmware_version;
     jsondoc["battery_percentage"] = grill::battery_percentage;
     jsondoc["battery_charging"]   = grill::battery_charging;
+    jsondoc["battery_millivolts"] = grill::battery_millivolts;
+    jsondoc["last_off_reason"]    = config::last_off_reason;
+    jsondoc["last_reset_reason"]  = config::last_reset_reason;
     jsondoc["wifi_connected"]     = grill::wifi_connected;
     jsondoc["wifi_ssid"]          = config::wifi_ssid;
     jsondoc["wifi_ip"]            = config::wifi_ip;

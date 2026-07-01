@@ -5,6 +5,7 @@
 #include <WebServer.h>
 #include <Wire.h>
 #include <ElegantOTA.h>
+#include <esp_system.h>
 #include <string>
 
 #include "Api.h"
@@ -36,6 +37,46 @@ void task_screen(void* pvParameters);
 void task_webserver(void* pvParameters);
 void task_stackmonitor(void* pvParameters);
 
+// ***********************************
+// * Power / diagnostics helpers
+// ***********************************
+
+// Human-readable form of esp_reset_reason() for logs and the status API.
+static const char* reset_reason_str(esp_reset_reason_t reason) {
+    switch (reason) {
+        case ESP_RST_POWERON:   return "poweron";
+        case ESP_RST_DEEPSLEEP: return "deepsleep";
+        case ESP_RST_SW:        return "sw";
+        case ESP_RST_PANIC:     return "panic";
+        case ESP_RST_INT_WDT:   return "int_wdt";
+        case ESP_RST_TASK_WDT:  return "task_wdt";
+        case ESP_RST_WDT:       return "wdt";
+        case ESP_RST_BROWNOUT:  return "brownout";
+        case ESP_RST_EXT:       return "ext";
+        case ESP_RST_SDIO:      return "sdio";
+        default:                return "unknown";
+    }
+}
+
+// Record why the device is about to power off, both in RAM (for the current status response)
+// and in NVS so it survives the deep sleep and can be shown after the next wake.
+static void record_off_reason(const char* reason) {
+    config::last_off_reason = reason;
+    config::settings_storage.putString("last_off", reason);
+}
+
+// Debounced read of the power button. GPIO35 is input-only and has no internal pull, so a
+// single digitalRead can catch electrical noise (moisture/EMI on a grill device). Require
+// several consecutive LOW samples before treating the button as pressed, so a brief glitch
+// can no longer masquerade as a press (and, at 2-10 s, trigger a shutdown).
+static bool button_is_low(void) {
+    for (int i = 0; i < 3; i++) {
+        if (digitalRead(gpio::power_button) == HIGH) return false;
+        delay(5);
+    }
+    return true;
+}
+
 void setup() {
 
     // ***********************************
@@ -59,27 +100,48 @@ void setup() {
     //* Power button pin is set here so that we can use it to check for boot
     pinMode(gpio::power_button, INPUT);
 
-    unsigned long millis_pressed        = 0;
-    unsigned long millis_button_start   = 0;
+    // Why did we (re)boot? The "hold the button to turn on" gate below must ONLY apply to
+    // deliberate power-on events: a cold power-up (ESP_RST_POWERON, e.g. battery inserted)
+    // or a wake from our own deep sleep (ESP_RST_DEEPSLEEP, button via ext0). Any other
+    // reset — brownout, panic, watchdog, ... — means the device was ALREADY running and
+    // reset unexpectedly. In that case we must resume operation instead of going (back) to
+    // sleep, otherwise a transient fault looks to the user like "it turned itself off".
+    esp_reset_reason_t reset_reason = esp_reset_reason();
+    config::last_reset_reason = reset_reason_str(reset_reason);
+    config::last_off_reason   = config::settings_storage.getString("last_off", "");
+    Serial.print("Reset reason: ");
+    Serial.println(config::last_reset_reason);
 
-    int bootup_press_time   = config::press_seconds_startup * 1000;
+    bool deliberate_power_on = (reset_reason == ESP_RST_POWERON ||
+                               reset_reason == ESP_RST_DEEPSLEEP);
 
-    if(digitalRead(gpio::power_button) == LOW){
-        millis_button_start = millis();
-    }
+    if (deliberate_power_on) {
+        unsigned long millis_pressed        = 0;
+        unsigned long millis_button_start   = 0;
 
-    while(digitalRead(gpio::power_button) == LOW){
-        millis_pressed = millis() - millis_button_start;
+        int bootup_press_time   = config::press_seconds_startup * 1000;
 
-        // beep if the button is held long enough
-        if(millis_pressed > bootup_press_time){
-            grill::buzzer.beep(1, 200);
-            break;
+        if(button_is_low()){
+            millis_button_start = millis();
         }
-    }
 
-    if(millis_pressed < bootup_press_time){
-        power.shutdown();
+        while(button_is_low()){
+            millis_pressed = millis() - millis_button_start;
+
+            // beep if the button is held long enough
+            if(millis_pressed > bootup_press_time){
+                grill::buzzer.beep(1, 200);
+                break;
+            }
+        }
+
+        if(millis_pressed < bootup_press_time){
+            record_off_reason("boot_gate");
+            power.shutdown();
+        }
+    } else {
+        // Unexpected reset while running -> self-recover, keep running.
+        Serial.println("Unexpected reset -> resuming without power-on gate");
     }
 
     // ***********************************
@@ -409,16 +471,20 @@ void task_powerbutton(void* pvParameters) {
     bool buzzed_medium     = false;
     bool buzzed_long       = false;
 
-    if(digitalRead(gpio::power_button) == LOW){
+    if(button_is_low()){
         millis_button_start = millis();
     }
 
     while(true){
-        if(digitalRead(gpio::power_button) == LOW && not button_pressed) {
+        // Single debounced read per iteration (avoids the pin being sampled inconsistently
+        // three times within one loop, and rejects short electrical glitches).
+        bool is_low = button_is_low();
+
+        if(is_low && not button_pressed) {
             // Initialize millis counter
             button_pressed = true;
             millis_button_start = millis();
-        } else if(digitalRead(gpio::power_button) == LOW){
+        } else if(is_low){
             millis_pressed = millis() - millis_button_start;
 
             // beep if the button is held long enough to indicate the action
@@ -435,7 +501,7 @@ void task_powerbutton(void* pvParameters) {
                 grill::buzzer.beep(3, 500);
             }
         }
-        else if (digitalRead(gpio::power_button) == HIGH && button_pressed)
+        else if (!is_low && button_pressed)
         {
             button_pressed = false;
             buzzed_short      = false;
@@ -462,6 +528,7 @@ void task_powerbutton(void* pvParameters) {
             }
             else if (millis_pressed < long_press_time) {
                 Serial.println("Button pressed 3-10 seconds");
+                record_off_reason("button");
                 power.shutdown();
             }
             else if (millis_pressed > long_press_time) {
@@ -558,15 +625,47 @@ void task_battery(void* pvParameters) {
     Serial.println("Launching task :: BATTERY");
     delay(5);   //Give FreeRtos a chance to properly schedule the task
 
-    battery.init();
+    // Only enforce the protective cutoff when the fuel gauge is confirmed present. If the
+    // gauge can't be reached, fail OPEN (keep running) rather than risk shutting down on a
+    // bad reading — the whole point is that the device should keep running.
+    bool gauge_present = battery.init();
     power.startup();
 
     // Phase 1: Enable Dynamic Frequency Scaling after power rails are stable.
     // CPU scales 80–240 MHz.  light_sleep_enable=false keeps SPI/I2C alive.
     power.enable_power_management();
 
+    int low_battery_confirmations = 0;
+
     for (;;) {
         battery.read_battery();
+
+        // Protective low-battery cutoff. The device is meant to run until powered off by the
+        // button; it only shuts itself down here to protect the cell from deep discharge.
+        // Guards against false triggers:
+        //   - only when the gauge is present and the device is NOT charging,
+        //   - SoC must be low but plausible (> 0): a raw 0 usually means a failed I2C read,
+        //   - a voltage backstop catches a miscalibrated gauge,
+        //   - require several consecutive confirmations (~15 s) so a single glitch is ignored.
+        if (gauge_present && !grill::battery_charging) {
+            bool soc_low = (grill::battery_percentage > 0 &&
+                            grill::battery_percentage <= config::battery_cutoff_percent);
+            bool voltage_low = (grill::battery_millivolts > 0 &&
+                                grill::battery_millivolts <= config::battery_cutoff_millivolts);
+
+            if (soc_low || voltage_low) {
+                low_battery_confirmations++;
+            } else {
+                low_battery_confirmations = 0;
+            }
+
+            if (low_battery_confirmations >= 3) {
+                Serial.printf("Battery critically low (%d%%, %d mV) -> protective shutdown\n",
+                              grill::battery_percentage, grill::battery_millivolts);
+                record_off_reason("low_battery");
+                power.shutdown();
+            }
+        }
 
         // SoC and charge flag change slowly; polling every 5 s is plenty and avoids
         // an I2C transaction + CPU wakeup every second.

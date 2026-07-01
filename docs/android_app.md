@@ -187,6 +187,9 @@ Polls at 1 s intervals for live temperature data.
   "temperature_unit":  "celcius",
   "battery_percentage": 82,
   "battery_charging":  false,
+  "battery_millivolts": 3980,
+  "last_off_reason":   "button",
+  "last_reset_reason": "deepsleep",
   "wifi_connected":    true,
   "wifi_signal":       -65,
   "alarm_active":      false,
@@ -216,6 +219,9 @@ Polls at 1 s intervals for live temperature data.
 | `alarm` (per probe) | `true` when `temperature >= target_temperature` (or outside min–max range). |
 | `wifi_signal` | dBm (negative). Map to %: `percent = 140 + dBm` (clamped 0–100). |
 | `minimum_temperature` | `0` = single-target mode; `>0` = range mode (keep between min and target). |
+| `battery_millivolts` | Measured cell voltage in mV. Diagnostics; independent of the gauge `battery_percentage`. `0` if unavailable. |
+| `last_off_reason` | Why the device last powered off (persisted across shutdown): `button`, `low_battery`, `boot_gate`, or empty. |
+| `last_reset_reason` | ESP32 reset reason at last boot: `poweron`, `deepsleep`, `brownout`, `panic`, `int_wdt`, `task_wdt`, `sw`, `unknown`. A fault value after self-recovery explains an apparent self-power-off. |
 
 ---
 

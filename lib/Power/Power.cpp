@@ -92,6 +92,7 @@ bool bat::chargeFlag(void) {
 bool bat::read_battery(void) {
 	grill::battery_percentage  = soc(FILTERED);
 	grill::battery_charging 	= chargeFlag();
+	grill::battery_millivolts   = (int) (voltage() * 1000.0f + 0.5f);
 	return true;
 }
 

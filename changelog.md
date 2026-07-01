@@ -1,5 +1,31 @@
 # Changelog (firmware only)
 
+## 26.07.01
+
+### The device no longer turns itself off unexpectedly
+Fix for "the thermometer switched itself off after ~1.5 h with the battery still over 80 %".
+The firmware has no auto-off timer and no battery cutoff — the real cause was that **any**
+unexpected reset (brownout from a WiFi TX current spike on an aging cell, watchdog, or a
+crash) hit the boot-time "hold the button to turn on" gate and, since the button wasn't held,
+went straight back into deep sleep. To the user that looks like a self-power-off.
+
+- **Reset-reason-aware boot gate.** The "hold the button ≥2 s to turn on" gate now applies
+  only to deliberate power-ons: a cold power-up (`ESP_RST_POWERON`) or a wake from our own
+  deep sleep (`ESP_RST_DEEPSLEEP`). After any fault reset (brownout/panic/watchdog/…) the
+  device **resumes running** instead of sleeping, so a transient fault self-recovers.
+- **Protective low-battery cutoff added.** The device now runs until powered off by the
+  button, and only shuts itself down to protect the cell when — while not charging — the
+  fuel-gauge SoC drops to ≤5 % (plausible, non-zero reading) or the measured cell voltage
+  drops to ≤3.2 V (backstop for a miscalibrated gauge). Requires ~15 s of consecutive
+  confirmations so a single I2C glitch can't power the device off.
+- **Power button is debounced.** GPIO35 is input-only with no internal pull; it is now
+  sampled with a short debounce so electrical noise (moisture/EMI) can no longer masquerade
+  as a 2-10 s press and trigger a shutdown.
+- **Shutdown/reset diagnostics.** The status API now reports `last_off_reason`
+  ("button"/"low_battery"/"boot_gate"), `last_reset_reason` (e.g. "brownout"/"panic"), and
+  `battery_millivolts` (measured cell voltage), so an apparent self-power-off can be
+  diagnosed after the fact — and shown in the app.
+
 ## 26.06.30-3
 
 ### Connectivity / stability fixes
