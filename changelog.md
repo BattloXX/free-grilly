@@ -1,5 +1,24 @@
 # Changelog (firmware only)
 
+## 26.07.01-2
+
+### Fixed regular crashes/reboots (concurrent JSON access)
+Root cause of "the firmware still crashes regularly". All the JSON builders shared **one
+global `JsonDocument`**. It was mutated concurrently by three tasks — the web server
+(`/api/*`), the MQTT publisher and the Opengrill publisher (both publish every second) — and
+`save_settings()`/`save_probes()` re-entered it via `publish_*()` while handling a web POST.
+Concurrent `clear()`/`add()`/`serializeJson()` on a single ArduinoJson memory pool corrupts
+its heap → panic/reboot. Because 26.07.01 made fault resets *resume running* instead of going
+to sleep, this now shows up as a visible reboot rather than the device "turning itself off".
+
+- **Each serializer now uses its own local `JsonDocument`** → fully reentrant and thread-safe
+  (the ESP32 heap allocator is itself thread-safe). No shared JSON state between tasks.
+- **`Probe::push_coarse` no longer puts a 360 B array on the probes-task stack** (made static);
+  it runs in a small-stacked task and could overflow it on the first coarse-buffer compaction
+  during a long cook.
+- **Bigger task stacks.** The alarm and probes tasks were only 1000 bytes — too tight for the
+  probes task's float/`log()` thermistor math. Raised (alarm 2048, probes/battery 3072 B).
+
 ## 26.07.01-1
 
 ### Web interface — Energy & Diagnostics on the About page

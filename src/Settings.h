@@ -63,7 +63,7 @@ namespace config{
 
     String grill_name                   = "";
     String grill_uuid                   = "";
-    String grill_firmware_version       = "26.07.01-1";
+    String grill_firmware_version       = "26.07.01-2";
 
     String temperature_unit             = "celcius";
     bool beep_enabled                   = true;
@@ -262,12 +262,16 @@ namespace task{
     TaskHandle_t webserverTask;
     TaskHandle_t stackmonitorTask;
 
-    int alarmStackSize        = 1000;
-    int batteryStackSize      = 2000;
+    // Stack sizes are in BYTES on ESP32 (the IDF FreeRTOS port, unlike vanilla FreeRTOS which
+    // uses words). The alarm and probes tasks were only 1000 B, which is very tight for the
+    // probes task's float/log() thermistor math (and left no margin) — a plausible secondary
+    // crash source. Bumped with comfortable headroom; RAM is plentiful (~320 KB DRAM).
+    int alarmStackSize        = 2048;
+    int batteryStackSize      = 3072;
     int mqttStackSize         = 8000;
     int opengrillStackSize    = 8000;
     int powerbuttonStackSize  = 10000; //Needed to be able to handle factory reset
-    int probesStackSize       = 1000;
+    int probesStackSize       = 3072;
     int screenStackSize       = 3000;
     int webserverStackSize    = 8000;
     int stackmonitorStackSize = 4000;

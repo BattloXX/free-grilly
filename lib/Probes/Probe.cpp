@@ -261,7 +261,10 @@ void Probe::push_coarse(float temp_c){
     // chronological sample and double the interval. Memory stays fixed; the
     // covered time window doubles each compaction.
     if (coarse_count >= COARSE_SIZE) {
-        int16_t tmp[COARSE_SIZE];
+        // static, not a stack array: this runs inside task_probes, whose stack is small, and
+        // COARSE_SIZE int16 = 360 B would risk a stack overflow there. Only task_probes calls
+        // push_coarse (sequentially, one probe at a time), so a shared static scratch is safe.
+        static int16_t tmp[COARSE_SIZE];
         int base = (coarse_head - coarse_count + COARSE_SIZE) % COARSE_SIZE;
         int kept = 0;
         for (int i = 0; i < coarse_count; i += 2) {
