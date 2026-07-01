@@ -8,10 +8,18 @@
 #include "JsonUtilities.h"
 #include "Probe.h"
 
-JsonDocument jsondoc;
+// NOTE: every serializer below uses its OWN local JsonDocument. There used to be a single
+// file-global `jsondoc` shared by all of these. That was a data race and the main cause of
+// the "firmware crashes regularly" reports: load_json_status() runs in the webserver task,
+// while Mqtt::publish_grill() and Opengrill::publish_grill() call it (and the other
+// load_/save_ helpers) every second from their own tasks — and save_settings()/save_probes()
+// even re-enter via publish_*() within the webserver task. Concurrent clear()/add()/
+// shrinkToFit()/serializeJson() on one ArduinoJson pool corrupts its heap → panic. A local
+// document per call makes these fully reentrant and thread-safe (the ESP32 heap allocator is
+// itself thread-safe), at the cost of a small alloc/free per call.
 
 void JsonUtilities::load_json_status(char *buffer){
-    jsondoc.clear();
+    JsonDocument jsondoc;
 
     jsondoc["name"]               = config::grill_name;
     jsondoc["unique_id"]          = config::grill_uuid;
@@ -59,7 +67,7 @@ void JsonUtilities::load_json_status(char *buffer){
 
 void JsonUtilities::load_json_settings(char* buffer){
 
-    jsondoc.clear();
+    JsonDocument jsondoc;
 
     jsondoc["name"]                      = config::grill_name;
     jsondoc["grill_name"]                = config::grill_name;  // Android app compat alias
@@ -106,6 +114,7 @@ void JsonUtilities::load_json_settings(char* buffer){
 }
 
 jsonResult JsonUtilities::save_json_settings(char* raw_json){
+    JsonDocument jsondoc;
     DeserializationError err = deserializeJson(jsondoc, raw_json);
 
     if(err){ return {false, "Could not deserialize json"}; }
@@ -185,7 +194,7 @@ jsonResult JsonUtilities::save_json_settings(char* raw_json){
 }
 
 void JsonUtilities::load_json_probes(char* buffer){
-    jsondoc.clear();
+    JsonDocument jsondoc;
 
     // Note: each probe object emits both legacy keys (probe_id, probe_type) consumed by the
     // firmware's own web UI AND the Android app's keys (id, type). The app uses ignoreUnknownKeys
@@ -292,6 +301,7 @@ void JsonUtilities::load_json_probes(char* buffer){
 
 jsonResult JsonUtilities::save_json_probes(char* raw_json){
 
+    JsonDocument jsondoc;
     DeserializationError err = deserializeJson(jsondoc, raw_json);
     if(err){ return {false, "Could not deserialize json"}; }
 
@@ -362,7 +372,7 @@ jsonResult JsonUtilities::save_json_probes(char* raw_json){
 }
 
 void JsonUtilities::load_opengrill_grill(char *buffer){
-    jsondoc.clear();
+    JsonDocument jsondoc;
 
     jsondoc["name"]                 = config::grill_name;
     jsondoc["battery_percentage"]   = grill::battery_percentage;
@@ -384,6 +394,7 @@ void JsonUtilities::load_opengrill_grill(char *buffer){
 }
 
 jsonResult JsonUtilities::save_opengrill_grill(char* raw_json){
+    JsonDocument jsondoc;
     DeserializationError err = deserializeJson(jsondoc, raw_json);
 
     if(err){ return {false, "Could not deserialize json"}; }
@@ -398,7 +409,7 @@ jsonResult JsonUtilities::save_opengrill_grill(char* raw_json){
 }
 
 void JsonUtilities::load_opengrill_probes(char* buffer){
-    jsondoc.clear();
+    JsonDocument jsondoc;
 
     JsonObject p1 = jsondoc["1"].to<JsonObject>();
     p1["name"] = grill::probe_1.name;
@@ -486,6 +497,7 @@ void JsonUtilities::load_opengrill_probes(char* buffer){
 
 jsonResult JsonUtilities::save_opengrill_probes(char* raw_json){
 
+    JsonDocument jsondoc;
     DeserializationError err = deserializeJson(jsondoc, raw_json);
     if(err){ return {false, "Could not deserialize json"}; }
 
@@ -541,6 +553,7 @@ jsonResult JsonUtilities::save_opengrill_probes(char* raw_json){
 }
 
 void JsonUtilities::load_json_wifiscan(char* buffer){
+    JsonDocument jsondoc;
 
     Serial.println("Starting WIFI scan");
 
@@ -549,8 +562,6 @@ void JsonUtilities::load_json_wifiscan(char* buffer){
     if (scanned_networks == 0) {
         Serial.println("no networks found");
     }
-
-    jsondoc.clear();
 
     JsonArray networks = jsondoc.to<JsonArray>();
 
@@ -592,7 +603,7 @@ void JsonUtilities::load_json_wifiscan(char* buffer){
 // ***********************************
 
 void JsonUtilities::load_json_history(char* buffer, size_t buf_size) {
-    jsondoc.clear();
+    JsonDocument jsondoc;
 
     jsondoc["interval_seconds"]        = 10; // fine tier — matches Probe::HISTORY_INTERVAL_S
     // Coarse tier interval is adaptive (doubles as the buffers fill). All probes are
