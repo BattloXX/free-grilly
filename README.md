@@ -56,6 +56,8 @@ This project provides alternative firmware for the Grilleye Max thermometer. Aft
   * [Mqtt documentation](docs/mqtt.md)
 * **Extended Battery Life:** WiFi Modem-Sleep and Dynamic Frequency Scaling (DFS) reduce idle current significantly without affecting probe measurement accuracy.
 * **Battery Management:** Includes functional battery monitoring and management based on the device's hardware.
+* **No unexpected self-power-off:** After a transient fault (brownout, watchdog or crash) the device resumes running instead of going back to sleep. It only powers off deliberately — via the button, or to protect the cell when the battery is nearly empty (fuel-gauge ≤5 % or cell voltage ≤3.2 V). See the [changelog](changelog.md).
+* **On-Device Diagnostics:** The web **About** page shows an *Energy* section (battery %, charging state, measured cell voltage) and a *Diagnostics* section (reason for the last restart and the last power-off). The same fields are exposed via `/api/grill` and in the Android app.
 * **Button Functionality:** The side button works for powering the device on/off and performing a factory reset (via long 10 seconds press).
 * **Persistent Settings:** All your configuration settings are saved directly on the device's non-volatile memory.
 
