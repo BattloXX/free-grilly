@@ -193,10 +193,21 @@ bool disp::display_update(void) {
     
     if(current_screen_page == 0) {draw_screen_temp();}
     else if (current_screen_page > 0 and current_screen_page < 9) {
-        screen.setFont(u8g2_font_4x6_tr);
-        screen.drawStr(2, 6, "Details");
+        // current_screen_page was set by switch_page() (task_powerbutton) against the probe
+        // count at press time; this runs on a 1 s timer on task_screen and re-fetches the
+        // probe list fresh. If a probe reports disconnected in between (loose contact, a
+        // transient SPI read miss), the vector can now be shorter than current_screen_page —
+        // indexing it unchecked was undefined behaviour and crashed the device. Fall back to
+        // the overview instead of indexing past the end.
         std::pair<int, std::vector<int>> connectedProbeInfo = get_connected_probes();
-        draw_screen_details(connectedProbeInfo.second[current_screen_page-1]);
+        if (current_screen_page > connectedProbeInfo.first) {
+            current_screen_page = 0;
+            draw_screen_temp();
+        } else {
+            screen.setFont(u8g2_font_4x6_tr);
+            screen.drawStr(2, 6, "Details");
+            draw_screen_details(connectedProbeInfo.second[current_screen_page-1]);
+        }
     }
     else if (current_screen_page == 10) {draw_screen_info();}
     else {current_screen_page = 0;}

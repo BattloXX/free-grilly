@@ -1,5 +1,22 @@
 # Changelog (firmware only)
 
+## 26.07.02
+
+### Fixed: detail screen unreachable / device reboots on button press
+Root cause of "the probe detail page no longer opens on the device". `current_screen_page`
+is set by the power-button task at press time, but the screen task redraws independently
+every 1 s and re-reads the connected-probe list fresh each time — using the raw C++ array
+index (`operator[]`, no bounds check). If the probe count drops between the button press and
+the next redraw (loose probe contact, a transient sensor read miss), the detail page indexed
+past the end of the now-shorter list — undefined behaviour, which crashed the device. Since
+26.07.01 made fault resets *resume* instead of sleep, the crash showed up as an immediate
+reboot back to the overview screen — from the button, indistinguishable from "nothing
+happened, the detail page just doesn't open anymore".
+
+- `disp::display_update()` now re-checks the current page against the freshly-read probe
+  count before indexing into it, and falls back to the overview screen instead of reading
+  past the end of the list.
+
 ## 26.07.01-2
 
 ### Fixed regular crashes/reboots (concurrent JSON access)
