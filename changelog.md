@@ -1,5 +1,28 @@
 # Changelog (firmware only)
 
+## 2026-09-28.2
+Temperature graphs and time to target. Install it from Settings > Firmware updates with the `-ota.bin` file.
+
+### New
+- Temperature graph on every probe card: the whole cook, with the target line or range band, and under it the time span and the temperature range
+- Large chart in the probe editor (tap a card): temperature labels and grid, a "30 min / Whole cook" switch, and "Clear history" (two taps)
+- Time to target: "ready in ~1h 20m" on the card and in the editor, "in 1:20" on the grill's probe screen, and `eta_seconds` in `/api/grill`, `/api/probes` and MQTT. Worked out from the last 10 minutes in target mode; after a sharp drop (lid opened, probe taken out) it's back after about 3 minutes of climbing
+- The grill keeps a temperature history per probe: the last 30 minutes at 10-second steps plus the whole cook at a coarser step, in a fixed ~5 KB. It's kept until a restart, until a probe has been unplugged for more than 10 minutes, or until you clear it
+- On the grill's screen, the label of a probe whose alarm is sounding blinks
+- Low-battery protection: at 5 % or 3.2 V (not charging, confirmed for 15 seconds) the grill beeps three times and switches off cleanly; About shows "Battery empty"
+- Settings in two fixed columns on desktops, so a tall card no longer leaves a gap
+- The probe editor explains that the calibration offset belongs to the socket, not to the probe
+
+### API and MQTT
+- `GET /api/history` (whole cook of all connected probes) and `GET /api/history?probe=N` (plus the last 30 minutes), streamed
+- `POST /api/history/clear` with `{"probe_id": N}`, and MQTT `<prefix>/<uuid>/config/clear_history`
+- `GET /api/info`: firmware, version, API version and `capabilities`, for apps and integrations
+- `last_off_reason` can be `low_battery`
+
+### Other
+- Firmware logic (history, time to target, low battery) has unit tests that run in CI
+- README: new screenshots, the new features, and a note that Grilly+ is built with AI coding agents
+
 ## 2026-09-28.1
 Hotfix for 2026-09-28. Everyone who installed 2026-09-28 should update: install it from Settings > Firmware updates with the `-ota.bin` file.
 
