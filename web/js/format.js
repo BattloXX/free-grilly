@@ -61,6 +61,7 @@ const Format = (() => {
     button: "With the button",
     factory_reset: "Factory reset",
     update: "Firmware update",
+    low_battery: "Battery empty",
   };
 
   function offReasonText(code) {
