@@ -35,4 +35,7 @@ class JsonUtilities{
         jsonResult save_opengrill_probes(char* jsondata);
 
         void load_json_wifiscan(char *buffer);
+
+        // What this firmware is and which optional features it has, for apps and integrations
+        void load_json_info(char *buffer);
 };

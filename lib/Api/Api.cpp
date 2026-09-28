@@ -21,6 +21,7 @@ char api_json_buffer[3000];
 void setup_api_routes()
 {
     web::webserver.on("/api/grill", HTTP_GET, get_api_grill);
+    web::webserver.on("/api/info", HTTP_GET, get_api_info);
 
     web::webserver.on("/api/probes", HTTP_GET, get_api_probes);
     web::webserver.on("/api/probes", HTTP_POST, post_api_probes);
@@ -65,6 +66,12 @@ bool is_json_request(){
 void get_api_grill()
 {
     config::json_handler.load_json_status(api_json_buffer);
+    allow_cross_origin_read();
+    web::webserver.send(200, "application/json", api_json_buffer);
+}
+
+void get_api_info(){
+    config::json_handler.load_json_info(api_json_buffer);
     allow_cross_origin_read();
     web::webserver.send(200, "application/json", api_json_buffer);
 }

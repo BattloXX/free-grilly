@@ -220,6 +220,15 @@ def handle(method, path, body, headers=None, query=""):
             else:
                 SETTINGS[key] = value
         return 200, SETTINGS
+    if method == "GET" and path == "/api/info":
+        return 200, {
+            "firmware": "grilly-plus", "firmware_version": SETTINGS["firmware_version"], "api_version": 1,
+            "unique_id": SETTINGS["uuid"],
+            "hostname": "grilly-plus-%s.local" % SETTINGS["uuid"].replace("-", "")[:8].lower(),
+            "probe_count": 8,
+            "capabilities": ["history", "eta", "clear_history", "alarm_mute", "alarm_probes",
+                             "calibration_offset", "diagnostics", "ota_upload"],
+        }
     if method == "GET" and path == "/api/wifiscan":
         time.sleep(1.5)
         return 200, WIFI_SCAN
