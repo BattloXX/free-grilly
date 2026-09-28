@@ -28,6 +28,7 @@ int current_minimum_temp                = 0;
 std::string current_elapsed_time        = "";
 unsigned long millis_backlight_timeout  = 0;
 unsigned long millis_screen_timeout     = 0;
+bool          blink_phase               = false;   // flips every screen update, drives the alarm label blink
 
 static const unsigned char battery_icon[]       U8X8_PROGMEM = {0xfe,0x03,0x01,0x04,0x01,0x0c,0x01,0x0c,0x01,0x04,0xfe,0x03};
 static const unsigned char battery_charging[]   U8X8_PROGMEM = {0x3d,0xe5,0x25,0x26,0xe4,0x3c};
@@ -112,6 +113,7 @@ bool disp::screen_pwr(status_type type){
 bool disp::display_update(void) {
     if(is_display_updating) {return true;}  //* prevent mulitple simultanious display updates 
     is_display_updating = true;
+    blink_phase = !blink_phase;
     if (config::backlight_timeout_minutes > 0 and millis_backlight_timeout + (config::backlight_timeout_minutes * 60000) < millis()) {
         screen_background_pwr(DISABLE);
     }
@@ -248,6 +250,7 @@ bool disp::draw_screen_temp(void){
             screen.drawStr(2, y_offset, "P :");
             screen.setCursor(7, y_offset); screen.print(connectedProbeInfo.second[i]);
             screen.setCursor(18, y_offset); screen.print(current_active_name);
+            blink_label(connectedProbeInfo.second[i], 0, y_offset - 8, 19 + screen.getStrWidth(current_active_name.c_str()), 10);
 
             // status text
             screen.setCursor(88, y_offset); screen.printf(current_elapsed_time.c_str());
@@ -307,6 +310,7 @@ bool disp::draw_screen_temp(void){
                 screen.setFont(u8g2_font_profont10_tr); 
                 screen.drawStr(x_offset, y_offset, "P :");
                 screen.setCursor(x_offset + 5, y_offset); screen.print(connectedProbeInfo.second[i]);
+                blink_label(connectedProbeInfo.second[i], x_offset - 1, y_offset - 8, 13, 10);
 
                 if (current_minimum_temp <= 0 and current_target_temp > 0 and current_active_temp > current_target_temp){
                     screen.drawStr(x_offset+16, y_offset, "READY");
@@ -351,6 +355,9 @@ bool disp::draw_screen_temp(void){
         screen.drawStr(67, 33, "6:");
         screen.drawStr(67, 46, "7:");
         screen.drawStr(67, 59, "8:");
+        for (int i = 0; i < 8; i++) {
+            blink_label(i + 1, i < 4 ? 1 : 66, 12 + (i % 4) * 13, 11, 10);
+        }
 
         // Probe values in the configured unit, disconnected probes show "-"
         screen.setFont(u8g2_font_profont12_tr);
@@ -395,6 +402,7 @@ bool disp::draw_screen_details(int connectedProbe){
     screen.drawStr(3, 20, "P :");
     screen.setCursor(9, 20); screen.print(connectedProbe);
     screen.setCursor(22, 20); screen.print(current_active_name);
+    blink_label(connectedProbe, 1, 10, 23 + screen.getStrWidth(current_active_name.c_str()), 12);
     
     // probe temp 
     screen.setFont(u8g2_font_profont29_tr); 
@@ -403,8 +411,12 @@ bool disp::draw_screen_details(int connectedProbe){
     // status text
     screen.setFont(u8g2_font_profont10_tr); 
     screen.setCursor(3, 53); screen.printf(current_elapsed_time.c_str());
-    //screen.drawStr(3, 53, "00:00");
-    //screen.drawStr(3, 62, "STATUS 2"); // Placeholder below the timer that can be used in the future to relay other information
+    // Time until the target, rounded up to whole minutes
+    int32_t eta = get_eta(connectedProbe);
+    if (eta >= 0) {
+        int minutes = (eta + 59) / 60;
+        screen.setCursor(3, 62); screen.printf("in %d:%02d", minutes / 60, minutes % 60);
+    }
 
     if (current_minimum_temp <= 0 and current_target_temp > 0 and current_active_temp > current_target_temp){
         screen.drawStr(95, 62, "READY");
@@ -590,6 +602,29 @@ std::string disp::get_connection_time(int connectedProbe) {
     return oss.str();
 }
 
+
+int32_t disp::get_eta(int connectedProbe) {
+    switch (connectedProbe) {
+        case 1: return grill::probe_1.eta_seconds;
+        case 2: return grill::probe_2.eta_seconds;
+        case 3: return grill::probe_3.eta_seconds;
+        case 4: return grill::probe_4.eta_seconds;
+        case 5: return grill::probe_5.eta_seconds;
+        case 6: return grill::probe_6.eta_seconds;
+        case 7: return grill::probe_7.eta_seconds;
+        case 8: return grill::probe_8.eta_seconds;
+        default: return -1;
+    }
+}
+
+void disp::blink_label(int connectedProbe, int x, int y, int width, int height) {
+    // alarm_probes has bit (n-1) set for probe n while its alarm sounds, cleared when muted
+    bool alarming = connectedProbe >= 1 && connectedProbe <= 8 && (grill::alarm_probes & (1 << (connectedProbe - 1)));
+    if (!alarming || !blink_phase) { return; }
+    screen.setDrawColor(2);
+    screen.drawBox(x, y, width, height);
+    screen.setDrawColor(1);
+}
 
 float disp::get_temp(int connectedProbe) {
     float temp = 0;
