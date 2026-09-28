@@ -1,0 +1,74 @@
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const Graph = require("../js/graph.js");
+
+const series = (values, stepMs = 10000) => values.map((v, i) => ({ t: i * stepMs, v }));
+const box = { width: 240, height: 46, mode: "off", target: 0, minimum: 0 };
+
+test("layout needs two readings", () => {
+  assert.equal(Graph.layout([], box), null);
+  assert.equal(Graph.layout(series([20]), box), null);
+  assert.equal(Graph.layout(series([20, null]), box), null);
+  assert.notEqual(Graph.layout(series([20, 21]), box), null);
+});
+
+test("layout spans the full width", () => {
+  const result = Graph.layout(series([20, 30, 40]), box);
+  assert.match(result.line, /^M0 /);
+  assert.match(result.line, /L240 [\d.]+$/);
+});
+
+test("a flat line sits in the middle", () => {
+  const result = Graph.layout(series([20, 20]), box);
+  assert.equal(result.line, "M0 23L240 23");
+});
+
+test("higher temperatures are drawn higher up", () => {
+  const result = Graph.layout(series([20, 60]), box);
+  const ys = result.line.match(/[\d.]+(?=L|$)/g).map(Number);
+  assert.ok(ys[1] < ys[0]);
+});
+
+test("the target line is included in the scale", () => {
+  const result = Graph.layout(series([20, 40, 60]), { ...box, mode: "target", target: 95 });
+  assert.equal(result.target, 3.2);
+  assert.equal(result.minimum, null);
+});
+
+test("range mode has a band below the target", () => {
+  const result = Graph.layout(series([85, 90, 91]), { ...box, mode: "range", target: 93, minimum: 88 });
+  assert.ok(result.minimum > result.target);
+});
+
+test("no guides without an alarm", () => {
+  const result = Graph.layout(series([20, 30]), box);
+  assert.equal(result.target, null);
+  assert.equal(result.minimum, null);
+});
+
+test("a gap splits the line", () => {
+  const result = Graph.layout(series([20, 21, null, 22, 23]), box);
+  assert.equal(result.line.split("M").length - 1, 2);
+  assert.equal(result.area.split("Z").length - 1, 2);
+});
+
+test("area closes along the bottom", () => {
+  const result = Graph.layout(series([20, 30]), box);
+  assert.match(result.area, /^M0 46L0 [\d.]+L240 [\d.]+L240 46Z$/);
+});
+
+test("downsample averages equal time slices", () => {
+  const out = Graph.downsample(series([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]), 5);
+  assert.deepEqual(out.map((p) => p.v), [0.5, 2.5, 4.5, 6.5, 8.5]);
+});
+
+test("downsample keeps gaps and short series", () => {
+  assert.deepEqual(Graph.downsample(series([1, 2]), 5), series([1, 2]));
+  const out = Graph.downsample(series([1, 1, null, null, 3, 3]), 3);
+  assert.deepEqual(out.map((p) => p.v), [1, null, 3]);
+});
+
+test("downsample caps long series", () => {
+  const long = series(Array.from({ length: 5000 }, (_, i) => 20 + i / 100));
+  assert.ok(Graph.downsample(long, 240).length <= 240);
+});
