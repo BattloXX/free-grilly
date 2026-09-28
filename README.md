@@ -25,6 +25,10 @@ Grilly+ is the same firmware Free-Grilly users already know, with a new web app 
 * **Mute from your phone:** a sounding alarm can be muted from the web app or over MQTT, and the card of the probe that triggered it is highlighted.
 * **Calibration offset** per probe, for probes that read a little high or low.
 * **Diagnostics:** the About page shows why the grill last restarted or switched off, and the battery voltage.
+* **Temperature graphs:** every probe card shows a graph of the whole cook, and the probe editor has a large chart with a "30 min / Whole cook" switch and a Clear history button.
+* **Time to target:** "ready in ~1h 20m" on the card, in the editor, on the grill's own screen and over MQTT, worked out from how fast the probe has been heating up.
+* **Blinking alarm label** on the grill's screen, so you can see which probe is beeping.
+* **Low-battery protection:** the grill switches itself off cleanly before an empty battery causes brownouts.
 
 See the [Features](#features) list below for the full picture, and [changelog.md](changelog.md) for the detailed history.
 
@@ -33,6 +37,10 @@ See the [Features](#features) list below for the full picture, and [changelog.md
 <img width="823" height="564" alt="image" src="https://github.com/user-attachments/assets/9a72935c-6b91-450a-b318-8b493ba91b6c" />
 
 ---
+
+**🤖 Built with AI**
+
+Grilly+ is developed with the help of AI coding agents (Anthropic's Claude). Every change goes through a pull request with automated tests and a code review, and firmware changes are tested on a real Grilleye Max before they're merged. Still, read the changes yourself if you rely on them, and report anything that looks wrong in the [Issues](https://github.com/bardesss/grilly-plus/issues).
 
 **⚠️ IMPORTANT DISCLAIMER ⚠️**
 
@@ -61,13 +69,15 @@ See the [Features](#features) list below for the full picture, and [changelog.md
 
 ## Features
 
-* **On-Device Temperature Display:** Shows current probe temperatures directly on the Grilleye Max screen.
+* **On-Device Temperature Display:** Shows current probe temperatures directly on the Grilleye Max screen. The probe screen shows the time to target, and the label of a probe whose alarm is sounding blinks.
 * **Audible Alerts:** The device beeps to notify you when temperatures go outside a set range or when food is nearing its target temperature, following the "Beep when ready" and "Beep outside target" settings, and it won't replay an alarm you already muted just because you renamed a probe or saved a setting. A sounding alarm can also be muted from the web app or over MQTT, not just the device's button, and the web app highlights the specific probe card(s) that triggered it.
 * **New web app:** a dashboard with a card per connected probe. Tap one to set its name, target temperature or a min/max range, with large steppers for quick adjustments. Settings save themselves, network changes are applied together with one button, password fields have a show/hide button, and the app works equally well on a phone or a desktop, in a dark or light theme that follows the device.
 * **Dual Web Access:** Access the web interface via:
     * A local Access Point (AP) mode (`http://192.168.200.10`) for initial setup.
     * Your home WiFi network (once configured) using the device's local IP address. The About page shows both addresses.
 * **mDNS discovery:** the grill is also reachable at `http://grilly-plus-xxxxxxxx.local`, no IP lookup needed, both on your home WiFi and on its own hotspot. The exact address is shown on the device's Info screen and the web app's About page. Some Android versions don't resolve `.local` names in the browser; the IP address still works there.
+* **Temperature graphs:** each probe card shows a graph of the whole cook with the target line or range band, the time span and the temperature range. Tap a card for a large chart with temperature labels, a "30 min / Whole cook" switch and a Clear history button (two taps). The grill keeps the last 30 minutes at 10 seconds per reading plus the whole cook at a coarser step, in a fixed ~5 KB of memory, so even a 24-hour cook fits. The history is kept until a restart, a probe is unplugged for more than 10 minutes, or you clear it.
+* **Time to target:** in target mode the grill works out when the probe will be ready from the last 10 minutes of readings, and shows it as "ready in ~1h 20m" on the card and in the editor, as "in 1:20" on the device's probe screen, and as `eta_seconds` in the API and MQTT. It restarts quickly after a drop, for example when you open the lid.
 * **Diagnostics on the About page:** battery voltage plus why the grill last restarted or was switched off (crash, watchdog, update, button, factory reset, ...), so an unexpected power-off no longer needs guesswork.
 * **Generated hotspot password:** new and factory-reset devices get a random hotspot password, shown on the device's Info screen, instead of an open access point. Devices upgraded from an earlier version keep whatever hotspot password (or lack of one) they already had.
 * **Probe Flexibility:**
@@ -79,7 +89,7 @@ See the [Features](#features) list below for the full picture, and [changelog.md
 * **Local REST API:** Provides a RESTful API endpoint on the device for integration with custom scripts, home automation systems, or other applications. Passwords are never returned by the API, and cross-site pages can't change your settings or push a firmware update.
 * **MQTT support:** All data (grill status/probes/settings/`connected_seconds`) is sent to an mqtt topic. You can also configure probes and settings via mqtt, including partial updates that only change the keys you send.
   * [Mqtt documentation](docs/mqtt.md)
-* **Battery Management:** Includes functional battery monitoring and management based on the device's hardware. A failed fuel-gauge reading is detected and ignored instead of showing up as 65535 %.
+* **Battery Management:** Includes functional battery monitoring and management based on the device's hardware. A failed fuel-gauge reading is detected and ignored instead of showing up as 65535 %. When the battery is empty (5 % or 3.2 V, not charging, confirmed for 15 seconds) the grill beeps three times and switches itself off cleanly; About then shows "Battery empty" as the reason.
 * **Button Functionality:** The side button works for powering the device on/off and performing a factory reset (via long 10 seconds press). It's debounced, so electrical noise can't cut a long press short or fake a press.
 * **Persistent Settings:** All your configuration settings are saved directly on the device's non-volatile memory.
 * **Reliability:** the grill boots straight back up after a firmware update, a factory reset, or an unexpected crash, instead of needing the button held; a saved static IP with a missing gateway falls back to DHCP instead of leaving the device unreachable. The early warning beep no longer pauses probe readings, and data shared between the firmware's tasks is locked so it can't be read while it's being changed.
@@ -87,7 +97,7 @@ See the [Features](#features) list below for the full picture, and [changelog.md
 
 ## Web interface
 
-Open the grill's address in a browser on your phone or computer. The dashboard shows every connected probe; tap one to set its name, a target temperature or a range. Settings save themselves.
+Open the grill's address in a browser on your phone or computer. The dashboard shows every connected probe with a graph of the cook; tap one for a large chart and to set its name, a target temperature or a range. Settings save themselves.
 
 <p>
   <img src="docs/screenshots/app_grill_phone_dark.png" alt="Grill view on a phone, dark theme" width="260">
@@ -97,10 +107,16 @@ Open the grill's address in a browser on your phone or computer. The dashboard s
 
 <img src="docs/screenshots/app_grill_desktop_dark.png" alt="Grill view on a desktop" width="800">
 
+<img src="docs/screenshots/app_editor_desktop_dark.png" alt="Probe editor with the temperature chart on a desktop" width="800">
+
+<img src="docs/screenshots/app_settings_desktop_light.png" alt="Settings in two columns on a desktop, light theme" width="800">
+
 ## API documentation
 
 - Api documentation is include in the [openapi.yaml file](docs/openapi.yaml)
 - You can also view this [online](https://editor-next.swagger.io/?url=https://raw.githubusercontent.com/bardesss/grilly-plus/refs/heads/master/docs/openapi.yaml)
+- `GET /api/info` tells an app or integration which firmware runs and which Grilly+ features (`capabilities`) it has.
+- `GET /api/history` returns the temperature history of the connected probes, `POST /api/history/clear` clears one.
 
 ## Installation
 
@@ -313,6 +329,7 @@ Tests:
 ```
 node --test "web/tests/*.test.js"
 python -m unittest discover -s tools -p "test_*.py"
+pio test -e native     # firmware logic (history, time to target, low battery), needs a host C++ compiler
 ```
 
 `pio run` builds `web/` into the firmware automatically.
