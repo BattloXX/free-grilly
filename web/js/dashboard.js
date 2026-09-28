@@ -27,9 +27,14 @@
     return card;
   }
 
-  // Draws the whole cook into the card's svg, or shows the placeholder until there are 2 readings
+  // Draws the whole cook into the card's svg, or shows the placeholder until there are 2 readings.
+  // Skipped when nothing that feeds the drawing changed since the last poll, so a card with a
+  // steady reading isn't rebuilt every second.
   function drawGraph(card, probe, unit) {
     const mode = Format.alarmMode(probe);
+    const key = [Trend.version(probe.probe_id), unit, mode, probe.target_temperature, probe.minimum_temperature].join("|");
+    if (card.dataset.graphKey === key) return;
+    card.dataset.graphKey = key;
     const result = Graph.layout(Trend.points(probe.probe_id, unit), {
       width: GRAPH_WIDTH, height: GRAPH_HEIGHT, mode,
       target: probe.target_temperature, minimum: probe.minimum_temperature,

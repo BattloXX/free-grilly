@@ -207,7 +207,6 @@ body.offline .live { opacity: .4; }
 .graph-target { stroke: var(--accent); stroke-width: 1; stroke-dasharray: 4 4; vector-effect: non-scaling-stroke; }
 .graph-band { fill: var(--good); opacity: .14; }
 .graph-empty { display: flex; align-items: center; justify-content: center; height: 46px; margin-top: 8px; border: 1px dashed var(--border); border-radius: 8px; font-size: 12px; color: var(--muted); }
-.graph-empty[hidden] { display: none; }
 .probe-time.eta { color: var(--accent-text); font-weight: 600; }
 /* Card for a probe currently causing a sounding alarm: a red outline that pulses, static under
    prefers-reduced-motion via the global rule above. */
@@ -343,6 +342,8 @@ details.advanced summary { display: flex; align-items: center; min-height: 44px;
 
 /* Firmware updates card */
 .settings-card [data-update] { margin-top: 12px; width: 100%; }
+.progress { height: 6px; margin-top: 10px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+.progress i { display: block; height: 100%; border-radius: 3px; background: var(--accent); transition: width .4s; }
 .progress.upload i { background: var(--accent); }
 .settings-card input[type="file"] { padding: 10px 12px; }
 

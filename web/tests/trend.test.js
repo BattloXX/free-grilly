@@ -58,3 +58,104 @@ test("append caps the series length over a long cook", () => {
   }
   assert.ok(points.length <= 4320);
 });
+
+test("append inserts a gap point after an offline period", () => {
+  const points = [{ t: 0, c: 20 }];
+  Trend.append(points, 25, 30001);   // more than 3 * 10000ms after the last point
+  assert.deepEqual(points, [{ t: 0, c: 20 }, { t: 10000, c: null }, { t: 30001, c: 25 }]);
+});
+
+test("append does not double up a gap when the previous point is already a gap", () => {
+  const points = [{ t: 0, c: 20 }, { t: 10000, c: null }];
+  Trend.append(points, 25, 40001);
+  assert.deepEqual(points, [{ t: 0, c: 20 }, { t: 10000, c: null }, { t: 40001, c: 25 }]);
+});
+
+test("thin keeps points that touch a gap in the older half even at an odd index", () => {
+  const points = Array.from({ length: 10 }, (_, i) => ({ t: i, c: i }));
+  points[3].c = null;   // index 3 falls in the older half (indices 0-4) and is odd
+  Trend.thin(points, 8);
+  assert.deepEqual(points, [
+    { t: 0, c: 0 }, { t: 2, c: 2 }, { t: 3, c: null }, { t: 4, c: 4 },
+    { t: 5, c: 5 }, { t: 6, c: 6 }, { t: 7, c: 7 }, { t: 8, c: 8 }, { t: 9, c: 9 },
+  ]);
+});
+
+test("version starts at 0 and bumps when a status appends a point", () => {
+  global.Api = { get: async () => ({ probes: [] }) };
+  delete require.cache[require.resolve("../js/trend.js")];
+  const FreshTrend = require("../js/trend.js");
+  assert.equal(FreshTrend.version(7), 0);
+  FreshTrend.onStatus({ temperature_unit: "celcius", probes: [{ probe_id: 7, connected: true, temperature: 20 }] });
+  assert.equal(FreshTrend.version(7), 1);
+  delete global.Api;
+});
+
+test("onStatus loads immediately on the first status", async () => {
+  let calls = 0;
+  global.Api = { get: async () => { calls++; return { probes: [] }; } };
+  delete require.cache[require.resolve("../js/trend.js")];
+  const FreshTrend = require("../js/trend.js");
+  FreshTrend.onStatus({ temperature_unit: "celcius", probes: [] });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(calls, 1);
+  delete global.Api;
+});
+
+test("onStatus debounces reconnect-triggered reloads to at most one per 5s", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout", "Date"] });
+  let calls = 0;
+  global.Api = { get: async () => { calls++; return { probes: [] }; } };
+  delete require.cache[require.resolve("../js/trend.js")];
+  const FreshTrend = require("../js/trend.js");
+  const flush = () => Promise.resolve().then(() => Promise.resolve());
+
+  const statusWith = (connected) => ({
+    temperature_unit: "celcius",
+    probes: [{ probe_id: 1, connected, temperature: 20 }],
+  });
+
+  FreshTrend.onStatus(statusWith(true));   // first status: loads immediately
+  await flush();
+  assert.equal(calls, 1);
+
+  FreshTrend.onStatus(statusWith(false));
+  FreshTrend.onStatus(statusWith(true));   // reconnect within 5s: scheduled, not dropped
+  FreshTrend.onStatus(statusWith(false));
+  FreshTrend.onStatus(statusWith(true));   // another reconnect within 5s: still only one scheduled
+  await flush();
+  assert.equal(calls, 1);
+
+  t.mock.timers.tick(5000);
+  await flush();
+  assert.equal(calls, 2);
+
+  global.Api = undefined;
+  t.mock.timers.reset();
+});
+
+test("load retries once after a failure, but not a second time", (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  let calls = 0;
+  global.Api = { get: async () => { calls++; throw new Error("offline"); } };
+  delete require.cache[require.resolve("../js/trend.js")];
+  const FreshTrend = require("../js/trend.js");
+
+  return FreshTrend.load()
+    .then(() => Promise.resolve())
+    .then(() => {
+      assert.equal(calls, 1);
+      t.mock.timers.tick(5000);
+      return new Promise((resolve) => setImmediate(resolve));
+    })
+    .then(() => {
+      assert.equal(calls, 2);   // the one retry
+      t.mock.timers.tick(5000);
+      return new Promise((resolve) => setImmediate(resolve));
+    })
+    .then(() => {
+      assert.equal(calls, 2);   // no retry of the retry
+      global.Api = undefined;
+      t.mock.timers.reset();
+    });
+});
