@@ -2,6 +2,7 @@
 import base64
 import json
 import time
+import urllib.parse
 
 START = time.time()
 
@@ -44,12 +45,56 @@ PROBES = [
 CONNECTED_AT = {1: START - 18720, 2: START - 13200, 3: START - 19200}
 BASE_TEMPERATURE = {1: 71.4, 2: 90.2, 3: 118.0}
 
+# Mock-only: probe_id -> time.time() when its history was cleared via /api/history/clear
+CLEARED_AT = {}
+
 
 def temperature(probe):
     if not probe["connected"]:
         return 0.0
     drift = (time.time() - START) / 600.0
     return round(BASE_TEMPERATURE[probe["probe_id"]] + drift + probe.get("offset_celcius", 0.0), 1)
+
+
+def history_values(probe, interval, count_limit):
+    """Tenths of a degree, oldest first, every `interval` seconds up to now."""
+    started = max(CONNECTED_AT[probe["probe_id"]], CLEARED_AT.get(probe["probe_id"], 0))
+    now = time.time()
+    count = min(int((now - started) // interval), count_limit)
+    values = []
+    for i in range(count):
+        taken = now - (count - i) * interval
+        # A warm-up from room temperature over the first 40 minutes, then the same drift as temperature()
+        warmup = min(1.0, (taken - started) / 2400.0)
+        base = 20.0 + (BASE_TEMPERATURE[probe["probe_id"]] - 20.0) * warmup
+        values.append(round((base + (taken - START) / 600.0 + probe.get("offset_celcius", 0.0)) * 10))
+    return values
+
+
+def history(only_probe=None):
+    result = []
+    for p in PROBES:
+        if not p["connected"] or (only_probe and p["probe_id"] != only_probe):
+            continue
+        coarse_values = history_values(p, 60, 119)
+        entry = {"probe_id": p["probe_id"],
+                  "coarse": {"interval": 60, "age": 20 if coarse_values else 0, "values": coarse_values}}
+        if only_probe:
+            fine_values = history_values(p, 10, 180)
+            entry["fine"] = {"interval": 10, "age": 3 if fine_values else 0, "values": fine_values}
+        result.append(entry)
+    return {"probes": result}
+
+
+def eta_seconds(probe):
+    """The mock's curve rises 0.1 degree per minute; only target mode below the target has an eta."""
+    if not probe["connected"] or probe["target_temperature"] <= 0 or probe["minimum_temperature"] > 0:
+        return -1
+    remaining = probe["target_temperature"] - temperature(probe)
+    if remaining <= 0:
+        return -1
+    eta = int(remaining / 0.1 * 60)
+    return -1 if eta > 86400 else eta
 
 
 def grill():
@@ -67,14 +112,14 @@ def grill():
              "minimum_temperature": p["minimum_temperature"], "target_temperature": p["target_temperature"],
              "connected": p["connected"],
              "connected_seconds": int(time.time() - CONNECTED_AT[p["probe_id"]]) if p["connected"] else 0,
-             "alarm": p["probe_id"] == ALARM_PROBE_ID}
+             "alarm": p["probe_id"] == ALARM_PROBE_ID, "eta_seconds": eta_seconds(p)}
             for p in PROBES
         ],
     }
 
 
 def probes():
-    return [dict(p, temperature=temperature(p)) for p in PROBES]
+    return [dict(p, temperature=temperature(p), eta_seconds=eta_seconds(p)) for p in PROBES]
 
 
 # Kept here because SETTINGS only says whether it is set, like the firmware
@@ -100,12 +145,34 @@ WIFI_SCAN = [
 ]
 
 
-def handle(method, path, body, headers=None):
+def handle(method, path, body, headers=None, query=""):
     """Returns (status, json_body) for an /api request."""
     global ADMIN_PASSWORD, ALARM_SOUNDING, ALARM_PROBE_ID
     headers = headers or {}
     if method == "GET" and path == "/api/grill":
         return 200, grill()
+    if method == "GET" and path == "/api/history":
+        params = urllib.parse.parse_qs(query)
+        if "probe" in params:
+            probe_id = int(params["probe"][0]) if params["probe"][0].isdigit() else 0
+            if not 1 <= probe_id <= 8:
+                return 400, {"error": "probe should be 1 to 8"}
+            return 200, history(probe_id)
+        return 200, history()
+    if method == "POST" and path == "/api/history/clear":
+        if not (headers or {}).get("Content-Type", "").startswith("application/json"):
+            return 415, {"error": "Content-Type should be application/json"}
+        try:
+            parsed = json.loads(body or b"{}")
+            if not isinstance(parsed, dict):
+                raise ValueError("not an object")
+        except ValueError:
+            return 400, {"error": "Could not deserialize json"}
+        probe_id = int(parsed.get("probe_id", 0))
+        if not 1 <= probe_id <= 8:
+            return 400, {"error": "probe_id should be between 1 and 8"}
+        CLEARED_AT[probe_id] = time.time()
+        return 200, {"success": True}
     if method == "POST" and path == "/api/alarm/mute":
         if not (headers or {}).get("Content-Type", "").startswith("application/json"):
             return 415, {"error": "Content-Type should be application/json"}

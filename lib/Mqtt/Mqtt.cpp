@@ -32,6 +32,7 @@ void Mqtt::setup(String mqtt_broker, int mqtt_port){
     Mqtt::sub_topic_settings     = topic_prefix + "/config/settings";
     Mqtt::sub_topic_probes       = topic_prefix + "/config/probes";
     Mqtt::sub_topic_mute         = topic_prefix + "/config/mute";
+    Mqtt::sub_topic_clear_history = topic_prefix + "/config/clear_history";
 
     Mqtt::server_host            = mqtt_broker;
     Mqtt::setServer(Mqtt::server_host.c_str(), mqtt_port);
@@ -98,7 +99,8 @@ void Mqtt::receive_callback(char* topic, byte* payload, unsigned int length){
     bool is_probes   = received_topic == Mqtt::sub_topic_probes;
     bool is_settings = received_topic == Mqtt::sub_topic_settings;
     bool is_mute     = received_topic == Mqtt::sub_topic_mute;
-    if(!is_probes && !is_settings && !is_mute){ return; }
+    bool is_clear_history = received_topic == Mqtt::sub_topic_clear_history;
+    if(!is_probes && !is_settings && !is_mute && !is_clear_history){ return; }
 
     jsonResult result = {true, ""};
     if(is_mute){
@@ -112,6 +114,8 @@ void Mqtt::receive_callback(char* topic, byte* payload, unsigned int length){
 
             if(is_probes){
                 result = config::json_handler.save_json_probes(mqtt_json_buffer);
+            } else if(is_clear_history){
+                result = config::json_handler.clear_json_history(mqtt_json_buffer);
             } else {
                 result = config::json_handler.save_json_settings(mqtt_json_buffer, false, true);
             }
@@ -165,6 +169,7 @@ bool Mqtt::connect_once(){
     Mqtt::subscribe(Mqtt::sub_topic_settings.c_str());
     Mqtt::subscribe(Mqtt::sub_topic_probes.c_str());
     Mqtt::subscribe(Mqtt::sub_topic_mute.c_str());
+    Mqtt::subscribe(Mqtt::sub_topic_clear_history.c_str());
 
     Mqtt::publish_grill();
     Mqtt::publish_probes();

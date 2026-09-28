@@ -190,6 +190,13 @@ components:
               alarm:
                 type: boolean
                 description: True while this probe is one of the causes of a sounding alarm_sounding
+              eta_seconds:
+                type: integer
+                readOnly: true
+                description: >-
+                  Seconds until the target temperature at the current rate. -1 when unknown: not in
+                  target mode, not rising by at least 0.05 °C per minute, less than 3 minutes of
+                  readings, target reached, or more than 24 hours away.
             example:
               probe_id: 1
               name: Ambient Probe
@@ -197,6 +204,7 @@ components:
               minimum_temperature: null
               target_temperature: 23.71832
               connected: true
+              eta_seconds: -1
 
     Probe:
       type: object
@@ -305,7 +313,62 @@ components:
           minimum: -10.0
           maximum: 10.0
           description: User calibration offset in Celcius, added to a valid reading before it is converted to the settings' temperature unit.
+        eta_seconds:
+          type: integer
+          readOnly: true
+          description: >-
+            Seconds until the target temperature at the current rate. -1 when unknown: not in
+            target mode, not rising by at least 0.05 °C per minute, less than 3 minutes of
+            readings, target reached, or more than 24 hours away.
 
+    History:
+      type: object
+      properties:
+        probes:
+          type: array
+          description: One entry per connected probe (empty when the requested probe isn't connected).
+          items:
+            type: object
+            properties:
+              probe_id:
+                type: integer
+                description: The number of the probe
+              coarse:
+                $ref: '#/components/schemas/HistoryTier'
+              fine:
+                allOf:
+                  - $ref: '#/components/schemas/HistoryTier'
+                description: Only present when the request has a `probe` query parameter.
+      example:
+        probes:
+          - probe_id: 1
+            coarse:
+              interval: 60
+              age: 35
+              values: [712, 715, null, 720]
+            fine:
+              interval: 10
+              age: 3
+              values: [718, 719, 720]
+
+    HistoryTier:
+      type: object
+      properties:
+        interval:
+          type: integer
+          description: Seconds between values
+        age:
+          type: integer
+          description: >-
+            Seconds since the newest value was taken. 0 when `values` is empty. Value i was taken
+            `age + (n-1-i) * interval` seconds ago, where n is the number of values.
+        values:
+          type: array
+          description: Tenths of a degree Celsius, oldest first. `null` marks a gap where the probe was unplugged.
+          items:
+            type:
+              - integer
+              - "null"
 
     Wifinetwork:
       type: object
@@ -648,6 +711,94 @@ paths:
                   success:
                     type: boolean
                     example: true
+        '415':
+          description: Content-Type was not application/json
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Content-Type should be application/json"
+
+  /history:
+    get:
+      tags:
+        - probes
+      summary: Temperature history
+      description: >
+        Temperature history for every connected probe (coarse tier only), or for one probe (coarse
+        and fine tiers) when `probe` is given.
+      parameters:
+        - name: probe
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 8
+          description: Limit the response to one probe and include its fine tier.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/History'
+        '400':
+          description: probe was outside 1-8
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "probe should be 1 to 8"
+
+  /history/clear:
+    post:
+      tags:
+        - probes
+      summary: Clear a probe's history
+      description: >
+        Clears the temperature history of one probe (the graph and time-to-target start over).
+        Harmless, so no admin auth is needed.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                probe_id:
+                  type: integer
+                  minimum: 1
+                  maximum: 8
+              example:
+                probe_id: 1
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '400':
+          description: Malformatted body or probe_id outside 1-8
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "probe_id should be between 1 and 8"
         '415':
           description: Content-Type was not application/json
           content:

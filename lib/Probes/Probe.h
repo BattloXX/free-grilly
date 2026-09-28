@@ -57,6 +57,7 @@ public:
 	
 	bool alarm                				   = false;	// Is the probe currently in an alarm state
 	volatile bool warn_before 				   = false;	// Set by the probes task, played and cleared by the alarm task
+	volatile int32_t eta_seconds 			   = -1;	// Seconds until the target temperature, -1 = unknown. Set by the probes task from the history.
 
 	/**
 	 * @brief Construct a new Probe object

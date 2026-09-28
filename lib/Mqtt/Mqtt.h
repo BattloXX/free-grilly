@@ -22,6 +22,7 @@ private:
     String sub_topic_settings       = "";
     String sub_topic_probes         = "";
     String sub_topic_mute           = "";
+    String sub_topic_clear_history  = "";
 
     // Set from other tasks, published by the mqtt task. PubSubClient is not thread safe.
     std::atomic<bool> settings_publish_requested{false};

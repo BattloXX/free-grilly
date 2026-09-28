@@ -11,6 +11,7 @@ import json
 import os
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -44,7 +45,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         body = self.rfile.read(length) if length else None
         if GRILL is None:
             import mock_api
-            status, data = mock_api.handle(self.command, self.path.split("?")[0], body, self.headers)
+            status, data = mock_api.handle(self.command, self.path.split("?")[0], body, self.headers, urllib.parse.urlsplit(self.path).query)
             return self.reply(status, "application/json", json.dumps(data).encode("utf-8"))
 
         request = urllib.request.Request("http://%s%s" % (GRILL, self.path), data=body, method=self.command)

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include "History.h"
 
 class Probe;
 class Buzzer;
@@ -49,4 +50,7 @@ namespace grill {
     extern Probe probe_7;
     extern Probe probe_8;
 
+    // Temperature history per probe, index = probe_id - 1. Written by the probes task, read by the
+    // webserver and mqtt tasks, so only touch it under the SharedLock.
+    extern history::ProbeHistory probe_history[8];
 }
