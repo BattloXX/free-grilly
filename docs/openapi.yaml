@@ -106,6 +106,7 @@ components:
             - button
             - factory_reset
             - update
+            - low_battery
             - ""
         wifi_connected:
           type: boolean

@@ -14,6 +14,7 @@
 #include "Network.h"
 #include "Opengrill.h"
 #include "Power.h"
+#include "LowBattery.h"
 #include "Preferences.h"
 #include "Website.h"
 #include "Web.h"
@@ -644,8 +645,17 @@ void task_battery(void* pvParameters) {
     }
     power.startup();
 
+    LowBattery low_battery;
     for (;;) {
-        battery.read_battery();
+        bool read_ok = battery.read_battery();
+
+        // Switch off cleanly before an empty battery causes brownouts and reboot loops
+        if (low_battery.update(read_ok, grill::battery_percentage, grill::battery_millivolts, grill::battery_charging)) {
+            Serial.printf("Battery empty (%d%%, %d mV), switching off\n", grill::battery_percentage, grill::battery_millivolts);
+            grill::buzzer.beep(3, 300);
+            config::config_helper.save_off_reason("low_battery");
+            power.shutdown();
+        }
 
         delay(1000);
     }

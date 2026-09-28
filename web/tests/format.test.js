@@ -85,3 +85,8 @@ test("changed fields", () => {
   assert.deepEqual(Format.changedFields({ a: 1, b: "x" }, { a: 1, b: "y", c: true }), { b: "y", c: true });
   assert.deepEqual(Format.changedFields({ a: 1 }, { a: 1 }), {});
 });
+
+test("off reason labels include the low battery switch-off", () => {
+  assert.equal(Format.offReasonText("low_battery"), "Battery empty");
+  assert.equal(Format.offReasonText("something_new"), "Unknown");
+});
