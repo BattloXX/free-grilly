@@ -94,6 +94,16 @@ private:
     *	@return true
     */
     std::string get_connection_time(int connectedProbe);
+    /**
+    *	@brief Seconds until the probe reaches its target, -1 when unknown
+    *   @param connectedProbe probe number
+    */
+    int32_t get_eta(int connectedProbe);
+    /**
+    *	@brief Inverts a box over a probe label every other screen update while that probe's alarm sounds
+    *   @param connectedProbe probe number
+    */
+    void blink_label(int connectedProbe, int x, int y, int width, int height);
         /**
     *	@brief Subroutine to get the temperature  
     *   @param connectedProbe probe number
