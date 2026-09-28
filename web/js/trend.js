@@ -3,10 +3,12 @@
 // grill's history, converted to the display unit when drawn.
 const Trend = (() => {
   const APPEND_EVERY_MS = 10000;   // the grill's own sample interval
+  const MAX_POINTS = 4320;         // 12h at 10s/point, older data thins out instead of growing forever
   const series = {};               // probe_id -> [{t, c}], oldest first
   const connectedBefore = {};      // probe_id -> connected in the previous status
   const listeners = [];
   let loading = false;
+  let pending = false;             // a reload was requested while one was already in flight
   let started = false;
 
   const isNumber = (value) => typeof value === "number" && isFinite(value);
@@ -28,10 +30,20 @@ const Trend = (() => {
     return result;
   }
 
+  // Keeps the newest half untouched and drops every other point of the older half, in place, so a
+  // long cook stays fully in view at a lower resolution for its older data instead of growing forever.
+  function thin(points, max) {
+    if (points.length <= max) return;
+    const half = Math.ceil(points.length / 2);
+    const older = points.slice(0, half).filter((_, i) => i % 2 === 0);
+    points.splice(0, points.length, ...older, ...points.slice(half));
+  }
+
   function append(points, celsius, nowMs) {
     const last = points[points.length - 1];
     if (last && nowMs - last.t < APPEND_EVERY_MS) return false;
     points.push({ t: nowMs, c: celsius });
+    thin(points, MAX_POINTS);
     return true;
   }
 
@@ -54,7 +66,7 @@ const Trend = (() => {
   function onChange(listener) { listeners.push(listener); }
 
   async function load() {
-    if (loading) return;
+    if (loading) { pending = true; return; }
     loading = true;
     try {
       const fresh = fromResponse(await Api.get("/api/history", 8000), Date.now());
@@ -65,6 +77,8 @@ const Trend = (() => {
       // Keep what we have, the next reconnect or page show loads again
     } finally {
       loading = false;
+      // A probe connecting or the page becoming visible during this load must not be dropped
+      if (pending) { pending = false; load(); }
     }
   }
 
@@ -88,7 +102,7 @@ const Trend = (() => {
     document.addEventListener("visibilitychange", () => { if (!document.hidden) load(); });
   }
 
-  return { tierPoints, fromResponse, append, toCelsius, display, points, onChange, load };
+  return { tierPoints, fromResponse, append, thin, toCelsius, display, points, onChange, load };
 })();
 
 if (typeof module === "object" && module.exports) module.exports = Trend;

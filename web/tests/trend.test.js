@@ -40,3 +40,21 @@ test("display converts to the display unit and keeps gaps", () => {
   assert.deepEqual(Trend.display(points, "fahrenheit"), [{ t: 1, v: 212 }, { t: 2, v: null }]);
   assert.deepEqual(Trend.display(points, "celcius"), [{ t: 1, v: 100 }, { t: 2, v: null }]);
 });
+
+test("thin keeps the newest half and thins the oldest half", () => {
+  const points = Array.from({ length: 10 }, (_, i) => ({ t: i, c: i }));
+  Trend.thin(points, 8);
+  assert.ok(points.length <= 8);
+  assert.deepEqual(points.slice(-5), [{ t: 5, c: 5 }, { t: 6, c: 6 }, { t: 7, c: 7 }, { t: 8, c: 8 }, { t: 9, c: 9 }]);
+  assert.deepEqual(points.slice(0, -5), [{ t: 0, c: 0 }, { t: 2, c: 2 }, { t: 4, c: 4 }]);
+});
+
+test("append caps the series length over a long cook", () => {
+  const points = [];
+  let t = 0;
+  for (let i = 0; i < 5000; i++) {
+    t += 10000;
+    Trend.append(points, i, t);
+  }
+  assert.ok(points.length <= 4320);
+});

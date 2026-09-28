@@ -57,6 +57,11 @@ test("area closes along the bottom", () => {
   assert.match(result.area, /^M0 46L0 [\d.]+L240 [\d.]+L240 46Z$/);
 });
 
+test("the target line stays on canvas even below all plotted values", () => {
+  const result = Graph.layout(series([60, 70]), { ...box, mode: "target", target: 40 });
+  assert.ok(result.target >= 0 && result.target <= 46);
+});
+
 test("downsample averages equal time slices", () => {
   const out = Graph.downsample(series([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]), 5);
   assert.deepEqual(out.map((p) => p.v), [0.5, 2.5, 4.5, 6.5, 8.5]);

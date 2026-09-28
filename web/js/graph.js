@@ -33,9 +33,16 @@ const Graph = (() => {
     const values = points.filter((point) => point.v !== null).map((point) => point.v);
     if (values.length < 2) return null;
 
-    let low = Math.min(...values);
-    let high = Math.max(...values);
-    if (opts.mode !== "off") high = Math.max(high, opts.target);
+    let low = values[0];
+    let high = values[0];
+    for (const value of values) {
+      if (value < low) low = value;
+      if (value > high) high = value;
+    }
+    if (opts.mode !== "off") {
+      high = Math.max(high, opts.target);
+      low = Math.min(low, opts.target);
+    }
     if (opts.mode === "range") low = Math.min(low, opts.minimum);
     if (high - low < MIN_SPAN) {
       const middle = (high + low) / 2;
