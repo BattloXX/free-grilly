@@ -189,6 +189,7 @@ const Editor = (() => {
   function resetClear() {
     clearTimeout(clearTimer);
     clearButton.textContent = "Clear history";
+    clearButton.disabled = false;
     delete clearButton.dataset.confirm;
   }
 
@@ -207,13 +208,15 @@ const Editor = (() => {
       Trend.clear(id);
       if (probeId === id) { fine = range === "recent" ? [] : null; chartKey = ""; drawChart(App.getStatus()); }
       Trend.load();
-      clearButton.textContent = "History cleared";
+      if (probeId === id) clearButton.textContent = "History cleared";
     } catch (error) {
-      clearButton.textContent = error.message || "Couldn't clear the history";
+      if (probeId === id) clearButton.textContent = error.message || "Couldn't clear the history";
     } finally {
-      clearButton.disabled = false;
-      delete clearButton.dataset.confirm;
-      clearTimer = setTimeout(resetClear, 2500);
+      if (probeId === id) {
+        clearButton.disabled = false;
+        delete clearButton.dataset.confirm;
+        clearTimer = setTimeout(resetClear, 2500);
+      }
     }
   }
 
