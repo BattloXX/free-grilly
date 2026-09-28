@@ -83,3 +83,21 @@ test("downsample caps long series", () => {
   const long = series(Array.from({ length: 5000 }, (_, i) => 20 + i / 100));
   assert.ok(Graph.downsample(long, 240).length <= 240);
 });
+
+test("layout reports the highest and lowest measured values", () => {
+  const result = Graph.layout(series([20, 45, 30]), box);
+  assert.equal(result.highest, 45);
+  assert.equal(result.lowest, 20);
+});
+
+test("highest and lowest ignore gaps and the target/minimum guides", () => {
+  const result = Graph.layout(series([20, null, 45, 30]), { ...box, mode: "range", target: 95, minimum: 5 });
+  assert.equal(result.highest, 45);
+  assert.equal(result.lowest, 20);
+});
+
+test("layout reports the first and last point times", () => {
+  const result = Graph.layout(series([20, 30, 40], 10000), box);
+  assert.equal(result.startT, 0);
+  assert.equal(result.endT, 20000);
+});

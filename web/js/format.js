@@ -103,6 +103,12 @@ const Format = (() => {
     return hours > 0 ? hours + "h " + minutes + "m" : minutes + "m";
   }
 
+  // How long ago something happened, for the graph's start label. "now" under a minute.
+  function ago(seconds) {
+    if (seconds < 60) return "now";
+    return duration(seconds) + " ago";
+  }
+
   // Time until the target from the grill's eta_seconds. "" when the grill doesn't know (-1).
   function eta(seconds) {
     if (!(seconds >= 0)) return "";
@@ -135,7 +141,7 @@ const Format = (() => {
   }
 
   return { unitSymbol, number, temperature, signal, battery, batteryDiagnostics, resetReasonText,
-           offReasonText, alarmMode, probeStatus, alarmLabel, duration, eta, emptySockets, changedFields };
+           offReasonText, alarmMode, probeStatus, alarmLabel, duration, ago, eta, emptySockets, changedFields };
 })();
 
 if (typeof module === "object" && module.exports) module.exports = Format;

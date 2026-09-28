@@ -39,6 +39,8 @@ const Graph = (() => {
       if (value < low) low = value;
       if (value > high) high = value;
     }
+    const lowest = low;
+    const highest = high;
     if (opts.mode !== "off") {
       high = Math.max(high, opts.target);
       low = Math.min(low, opts.target);
@@ -88,6 +90,10 @@ const Graph = (() => {
       area,
       target: opts.mode === "off" ? null : y(opts.target),
       minimum: opts.mode === "range" ? y(opts.minimum) : null,
+      highest,
+      lowest,
+      startT: points[0].t,
+      endT: points[points.length - 1].t,
     };
   }
 
