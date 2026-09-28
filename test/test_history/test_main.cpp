@@ -143,6 +143,39 @@ void test_eta_only_uses_the_last_ten_minutes(){
     TEST_ASSERT_INT_WITHIN(30, 612, h.eta_seconds(70.0f));
 }
 
+void test_eta_recovers_soon_after_a_drop(){
+    feed(40, 80.0f, 0.0f);                             // steady, then the probe is pulled/lid opened
+    h.add(t, true, 50.0f); t += FINE_INTERVAL_S;
+    h.add(t, true, 38.0f); t += FINE_INTERVAL_S;
+    h.add(t, true, 30.0f); t += FINE_INTERVAL_S;
+    feed(20, 30.0f, 2.0f / 6.0f);                      // recovering at 2 degrees/minute
+    // Fit should start at the lowest point (30.0), not the flat 80 degrees before the drop.
+    // Naively: (70 - current) / (2 deg/min) = (70 - 36.333) / (1/30) = 1010 s.
+    int32_t eta = h.eta_seconds(70.0f);
+    TEST_ASSERT_NOT_EQUAL(ETA_UNKNOWN, eta);
+    TEST_ASSERT_INT_WITHIN(30, 1010, eta);
+}
+
+void test_eta_unknown_when_recovery_too_short(){
+    feed(40, 80.0f, 0.0f);
+    h.add(t, true, 50.0f); t += FINE_INTERVAL_S;
+    h.add(t, true, 38.0f); t += FINE_INTERVAL_S;
+    h.add(t, true, 30.0f); t += FINE_INTERVAL_S;
+    feed(10, 30.0f, 2.0f / 6.0f);                      // only 110 s since the lowest point
+    TEST_ASSERT_EQUAL_INT32(ETA_UNKNOWN, h.eta_seconds(70.0f));
+}
+
+void test_eta_small_dip_does_not_restart_the_fit(){
+    feed(30, 20.0f, 1.0f / 6.0f);                      // rising 1 degree/minute for 30 samples
+    h.add(t, true, 20.0f + 30.0f / 6.0f - 1.5f);        // one sample dips 1.5 degrees, then resumes
+    t += FINE_INTERVAL_S;
+    feed(29, 20.0f + 31.0f / 6.0f, 1.0f / 6.0f);        // trend continues as if undisturbed
+    // Should behave like the undisturbed rise (see test_eta_rising_one_degree_per_minute): ~1210 s.
+    int32_t eta = h.eta_seconds(50.0f);
+    TEST_ASSERT_NOT_EQUAL(ETA_UNKNOWN, eta);
+    TEST_ASSERT_INT_WITHIN(30, 1210, eta);
+}
+
 void test_eta_ignores_gaps(){
     feed(30, 20.0f, 1.0f / 6.0f);
     feed_unplugged(3);
@@ -192,6 +225,9 @@ int main(int argc, char** argv){
     RUN_TEST(test_eta_unknown_at_or_above_target);
     RUN_TEST(test_eta_unknown_beyond_24_hours);
     RUN_TEST(test_eta_only_uses_the_last_ten_minutes);
+    RUN_TEST(test_eta_recovers_soon_after_a_drop);
+    RUN_TEST(test_eta_unknown_when_recovery_too_short);
+    RUN_TEST(test_eta_small_dip_does_not_restart_the_fit);
     RUN_TEST(test_eta_ignores_gaps);
     RUN_TEST(test_eta_for_probe_unknown_when_not_connected);
     RUN_TEST(test_eta_for_probe_unknown_in_range_mode);

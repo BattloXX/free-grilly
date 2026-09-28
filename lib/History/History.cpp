@@ -87,6 +87,23 @@ int16_t ProbeHistory::fine_at(int i) const {
 int32_t ProbeHistory::eta_seconds(float target_celcius) const {
     int first = fine_count_ > ETA_WINDOW_SAMPLES ? fine_count_ - ETA_WINDOW_SAMPLES : 0;
 
+    // A pulled probe or an opened lid can put a sharp dip in the window; fitting across it
+    // drags the slope negative and hides a real recovery for up to 10 minutes. If the window's
+    // lowest point fell at least 2 degrees from an earlier high, fit only from that low point on.
+    {
+        int16_t running_max = NO_VALUE, min_value = NO_VALUE, max_before_min = NO_VALUE;
+        int min_index = first;
+        for(int i = first; i < fine_count_; i++){
+            int16_t value = fine_at(i);
+            if(value == NO_VALUE){ continue; }
+            if(min_value == NO_VALUE || value < min_value){
+                min_value = value; min_index = i; max_before_min = running_max;
+            }
+            if(running_max == NO_VALUE || value > running_max){ running_max = value; }
+        }
+        if(max_before_min != NO_VALUE && max_before_min - min_value >= 20){ first = min_index; }
+    }
+
     // Least squares line through the valid samples: x in seconds, y in degrees
     double n = 0, sum_x = 0, sum_y = 0, sum_xx = 0, sum_xy = 0;
     int16_t newest = NO_VALUE;
