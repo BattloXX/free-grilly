@@ -88,6 +88,15 @@ const Trend = (() => {
     return display(series[probeId] || [], unit);
   }
 
+  // Notifies listeners so the card resets immediately, without waiting for the next status poll or
+  // history reload. editor.js's own onChange handler only redraws the chart, and onClear() only calls
+  // Trend.load() afterwards (not clear() again), so this can't loop back into another clear.
+  function clear(probeId) {
+    if (series[probeId]) series[probeId].length = 0;
+    bump(probeId);
+    listeners.forEach((listener) => listener());
+  }
+
   function onChange(listener) { listeners.push(listener); }
 
   // isRetry marks the single automatic retry of a failed load, so its own failure doesn't queue
@@ -161,7 +170,7 @@ const Trend = (() => {
     document.addEventListener("visibilitychange", () => { if (!document.hidden) loadNow(); });
   }
 
-  return { tierPoints, fromResponse, append, thin, toCelsius, display, points, onChange, load, onStatus, version };
+  return { tierPoints, fromResponse, append, thin, toCelsius, display, points, clear, onChange, load, onStatus, version };
 })();
 
 if (typeof module === "object" && module.exports) module.exports = Trend;

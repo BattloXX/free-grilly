@@ -109,6 +109,31 @@ test("version starts at 0 and bumps when a status appends a point", () => {
   delete global.Api;
 });
 
+test("clear empties the series and bumps the version", () => {
+  global.Api = { get: async () => ({ probes: [] }) };
+  delete require.cache[require.resolve("../js/trend.js")];
+  const FreshTrend = require("../js/trend.js");
+  FreshTrend.onStatus({ temperature_unit: "celcius", probes: [{ probe_id: 9, connected: true, temperature: 20 }] });
+  assert.ok(FreshTrend.points(9, "celcius").length > 0);
+  const versionBefore = FreshTrend.version(9);
+  FreshTrend.clear(9);
+  assert.deepEqual(FreshTrend.points(9, "celcius"), []);
+  assert.notEqual(FreshTrend.version(9), versionBefore);
+  delete global.Api;
+});
+
+test("clear notifies onChange listeners", () => {
+  global.Api = { get: async () => ({ probes: [] }) };
+  delete require.cache[require.resolve("../js/trend.js")];
+  const FreshTrend = require("../js/trend.js");
+  FreshTrend.onStatus({ temperature_unit: "celcius", probes: [{ probe_id: 4, connected: true, temperature: 20 }] });
+  let calls = 0;
+  FreshTrend.onChange(() => { calls++; });
+  FreshTrend.clear(4);
+  assert.equal(calls, 1);
+  delete global.Api;
+});
+
 test("onStatus loads immediately on the first status", async () => {
   let calls = 0;
   global.Api = { get: async () => { calls++; return { probes: [] }; } };

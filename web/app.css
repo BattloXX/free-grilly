@@ -194,13 +194,13 @@ body.offline .live { opacity: .4; }
 .probe-card[data-status="low"] .probe-status,
 .probe-card[data-status="high"] .probe-status { color: var(--warn); font-weight: 600; }
 /* Graph strip: the line colour follows the probe's status */
-.probe-card { --graph: var(--muted); }
-.probe-card[data-status="to-go"] { --graph: var(--warn); }
-.probe-card[data-status="ready"],
-.probe-card[data-status="in-range"] { --graph: var(--good); }
-.probe-card[data-status="low"],
-.probe-card[data-status="high"] { --graph: var(--warn); }
-.probe-card.alarming { --graph: var(--bad); }
+.probe-card, .chart { --graph: var(--muted); }
+.probe-card[data-status="to-go"], .chart[data-status="to-go"] { --graph: var(--warn); }
+.probe-card[data-status="ready"], .chart[data-status="ready"],
+.probe-card[data-status="in-range"], .chart[data-status="in-range"] { --graph: var(--good); }
+.probe-card[data-status="low"], .chart[data-status="low"],
+.probe-card[data-status="high"], .chart[data-status="high"] { --graph: var(--warn); }
+.probe-card.alarming, .chart[data-status="alarm"] { --graph: var(--bad); }
 .graph-wrap { position: relative; margin-top: 8px; }
 .graph { display: block; width: 100%; height: 46px; margin-top: 0; overflow: visible; }
 .graph-line { fill: none; stroke: var(--graph); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
@@ -226,6 +226,15 @@ body.offline .live { opacity: .4; }
   0%, 100% { box-shadow: 0 0 0 0 var(--bad); }
   50% { box-shadow: 0 0 0 6px var(--bad); }
 }
+/* Editor chart */
+.chart { position: relative; margin: 10px 0 4px; padding-left: 34px; }
+.chart-svg { display: block; width: 100%; height: 140px; overflow: visible; }
+.chart-grid line { stroke: var(--border); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.chart-y { position: absolute; left: 0; top: 0; width: 30px; height: 140px; pointer-events: none; }
+.chart-y span { position: absolute; right: 0; transform: translateY(-50%); font-size: 11px; color: var(--muted); }
+.chart-x { display: flex; justify-content: space-between; margin-top: 4px; font-size: 11px; color: var(--muted); }
+.chart .graph-empty { height: 140px; margin-top: 0; }
+
 .empty-sockets { margin: 14px 0 0; text-align: center; font-size: 13px; color: var(--muted); }
 .no-probes { padding: 32px 16px; text-align: center; color: var(--muted); }
 
@@ -328,6 +337,8 @@ details.probe-type[open] summary .icon { transform: rotate(90deg); }
 .switch:checked { background: var(--accent); }
 .switch:checked::after { transform: translateX(20px); }
 .link-button { min-height: 44px; padding: 8px 0; border: 0; background: none; color: var(--accent-text); font-size: 14px; cursor: pointer; }
+.link-button.danger { color: var(--bad); margin-top: 12px; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .hint { margin: 6px 0 0; }
 .warning { margin: 10px 0 0; font-size: 13px; color: var(--warn); }
 .notice { margin: 10px 0 0; font-size: 14px; }

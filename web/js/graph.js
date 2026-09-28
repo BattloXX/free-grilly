@@ -94,10 +94,21 @@ const Graph = (() => {
       lowest,
       startT: points[0].t,
       endT: points[points.length - 1].t,
+      scaleLow: low,
+      scaleHigh: high,
     };
   }
 
-  return { downsample, layout };
+  // Round values for axis labels: at most about `count` steps between low and high
+  function ticks(low, high, count = 3) {
+    const steps = [0.5, 1, 2, 5, 10, 20, 25, 50, 100, 200];
+    const step = steps.find((s) => s >= (high - low) / count) || 200;
+    const result = [];
+    for (let v = Math.ceil(low / step) * step; v <= high + 1e-9; v += step) result.push(Math.round(v * 10) / 10);
+    return result;
+  }
+
+  return { downsample, layout, ticks };
 })();
 
 if (typeof module === "object" && module.exports) module.exports = Graph;

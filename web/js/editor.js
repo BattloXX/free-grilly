@@ -17,6 +17,14 @@ const Editor = (() => {
   let returnFocus = null;
   let closeTimer = null;
   let swipeStart = null;
+  let chart, chartBox, rangeInputs, clearButton;
+  let range = "cook";
+  let fine = null;
+  let chartKey = "";
+  let clearTimer = null;
+  let clearNote;
+  let generation = 0;
+  let fineLoading = false;
 
   function unit() {
     const status = App.getStatus();
@@ -128,9 +136,110 @@ const Editor = (() => {
   function updateLive(status) {
     if (probeId === null || !status) return;
     const probe = status.probes.find((p) => p.probe_id === probeId);
-    live.textContent = probe && probe.connected
-      ? "Now " + Format.temperature(probe.temperature, status.temperature_unit)
-      : "Not connected";
+    if (probe && probe.connected) {
+      const eta = Format.eta(probe.eta_seconds);
+      live.textContent = "Now " + Format.temperature(probe.temperature, status.temperature_unit) + (eta ? " · " + eta : "");
+    } else {
+      live.textContent = "Not connected";
+    }
+  }
+
+  // Last 30 minutes: the grill's 10 s history plus the points the page added since
+  function recentPoints(id, u) {
+    const base = fine ? Trend.display(fine, u) : [];
+    const lastT = base.length ? base[base.length - 1].t : 0;
+    const cutoff = Date.now() - 30 * 60 * 1000;
+    return base.concat(Trend.points(id, u).filter((p) => p.t > lastT)).filter((p) => p.t >= cutoff);
+  }
+
+  function drawChart(status) {
+    if (probeId === null || !status) return;
+    const probe = status.probes.find((p) => p.probe_id === probeId);
+    chartBox.hidden = !probe || !probe.connected;
+    if (chartBox.hidden) return;
+    const u = status.temperature_unit;
+    const mode = Format.alarmMode(probe);
+    const key = [range, Trend.version(probeId), fine ? fine.length : -1, u, mode,
+                 probe.target_temperature, probe.minimum_temperature, probe.alarm,
+                 Format.probeStatus(probe).kind].join("|");
+    if (key === chartKey) return;
+    chartKey = key;
+    chart.update(range === "cook" ? Trend.points(probeId, u) : recentPoints(probeId, u), {
+      mode, target: probe.target_temperature, minimum: probe.minimum_temperature,
+      status: probe.alarm ? "alarm" : Format.probeStatus(probe).kind,
+    });
+  }
+
+  // gen guards against a fetch that is still in flight when a clear (or a fresh open()) invalidates
+  // it - without this, a late response could put the pre-clear fine data back on screen.
+  async function loadFine(id) {
+    const gen = generation;
+    fineLoading = true;
+    try {
+      const response = await Api.get("/api/history?probe=" + id, 5000);
+      if (probeId !== id || gen !== generation) return;
+      const entry = response && response.probes && response.probes[0];
+      fine = entry && entry.fine ? Trend.tierPoints(entry.fine, Date.now()) : [];
+    } catch (error) {
+      if (probeId === id && gen === generation) fine = [];   // the whole-cook points still fill the last 30 minutes
+    } finally {
+      fineLoading = false;
+    }
+    if (probeId !== id || gen !== generation) return;
+    chartKey = "";
+    drawChart(App.getStatus());
+  }
+
+  function onRangeChange() {
+    range = [...rangeInputs].find((input) => input.checked).value;
+    chartKey = "";
+    if (range === "recent" && fine === null && !fineLoading) loadFine(probeId);
+    drawChart(App.getStatus());
+  }
+
+  function resetClear() {
+    clearTimeout(clearTimer);
+    clearButton.textContent = "Clear history";
+    clearButton.disabled = false;
+    delete clearButton.dataset.confirm;
+  }
+
+  async function onClear() {
+    if (!clearButton.dataset.confirm) {
+      clearTimeout(clearTimer);   // a leftover "History cleared" reset must not cut the new confirm short
+      clearButton.dataset.confirm = "1";
+      clearButton.textContent = "Tap again to clear the history";
+      clearTimer = setTimeout(resetClear, 4000);
+      return;
+    }
+    clearTimeout(clearTimer);
+    const id = probeId;
+    clearButton.disabled = true;
+    if (clearNote) clearNote.textContent = "";
+    try {
+      await Api.post("/api/history/clear", { probe_id: id });
+      Trend.clear(id);
+      generation++;   // invalidate any loadFine() still in flight for the pre-clear data
+      if (probeId === id) {
+        fine = range === "recent" ? [] : null;
+        chartKey = "";
+        drawChart(App.getStatus());
+        clearButton.textContent = "History cleared";
+        if (clearNote) clearNote.textContent = "History cleared";
+      }
+      Trend.load();
+    } catch (error) {
+      if (probeId === id) {
+        clearButton.textContent = error.message || "Couldn't clear the history";
+        if (clearNote) clearNote.textContent = clearButton.textContent;
+      }
+    } finally {
+      if (probeId === id) {
+        clearButton.disabled = false;
+        delete clearButton.dataset.confirm;
+        clearTimer = setTimeout(resetClear, 2500);
+      }
+    }
   }
 
   async function open(id, trigger) {
@@ -141,6 +250,13 @@ const Editor = (() => {
     Controls.showNote(note, "idle");
     form.disabled = true;
     updateLive(App.getStatus());
+    range = "cook";
+    fine = null;
+    chartKey = "";
+    generation++;   // invalidate a loadFine() left over from a previous probe or clear
+    rangeInputs.forEach((input) => { input.checked = input.value === "cook"; });
+    resetClear();
+    drawChart(App.getStatus());
     show();
     try {
       const probes = await Api.get("/api/probes", 5000);
@@ -163,6 +279,7 @@ const Editor = (() => {
     if (probeId === null) return;
     saver.flush();
     probeId = null;
+    resetClear();
     document.body.classList.remove("sheet-open");
     closeTimer = setTimeout(() => { backdrop.hidden = true; sheet.hidden = true; }, 260);
     if (returnFocus && document.contains(returnFocus)) returnFocus.focus();
@@ -199,6 +316,13 @@ const Editor = (() => {
       '  <button type="button" class="icon-button" data-close aria-label="Close"><svg class="icon"><use href="#i-close"/></svg></button>' +
       '</div>' +
       '<p class="sheet-live live"></p>' +
+      '<div id="editor-chart-box">' +
+      '  <div id="editor-chart"></div>' +
+      '  <fieldset class="segmented chart-range"><legend class="visually-hidden">Graph</legend><div class="options">' +
+      '    <label><input type="radio" name="editor-range" value="recent"><span>30 min</span></label>' +
+      '    <label><input type="radio" name="editor-range" value="cook"><span>Whole cook</span></label>' +
+      '  </div></fieldset>' +
+      '</div>' +
       '<fieldset class="editor-form">' +
       '  <label class="field"><span>Name</span><input id="editor-name" maxlength="32" autocomplete="off"></label>' +
       '  <fieldset class="segmented"><legend>Alarm</legend><div class="options">' +
@@ -218,7 +342,9 @@ const Editor = (() => {
       '    <div class="field"><span class="field-label">Calibration offset (°C)</span><div id="editor-offset"></div>' +
       '      <p class="hint">Saved for this socket, not for the probe. If you move the probe to another socket, set it again there.</p></div>' +
       '  </details>' +
-      '</fieldset>';
+      '</fieldset>' +
+      '<button type="button" class="link-button danger" id="editor-clear">Clear history</button>' +
+      '<span class="visually-hidden" id="editor-clear-note" aria-live="polite"></span>';
     document.body.append(backdrop, sheet);
 
     form = sheet.querySelector(".editor-form");
@@ -234,6 +360,11 @@ const Editor = (() => {
     typeName = sheet.querySelector("#editor-type-name");
     customBox = sheet.querySelector("#editor-custom");
     sheet.querySelectorAll("[data-ref]").forEach((input) => { refInputs[input.dataset.ref] = input; });
+    chart = Chart.create(sheet.querySelector("#editor-chart"));
+    chartBox = sheet.querySelector("#editor-chart-box");
+    rangeInputs = sheet.querySelectorAll('input[name="editor-range"]');
+    clearButton = sheet.querySelector("#editor-clear");
+    clearNote = sheet.querySelector("#editor-clear-note");
 
     Object.entries(TYPES).forEach(([value, label]) => typeSelect.add(new Option(label, value)));
 
@@ -269,6 +400,8 @@ const Editor = (() => {
     sheet.querySelector("[data-close]").addEventListener("click", close);
     backdrop.addEventListener("click", close);
     sheet.addEventListener("keydown", trapFocus);
+    rangeInputs.forEach((input) => input.addEventListener("change", onRangeChange));
+    clearButton.addEventListener("click", onClear);
 
     // Swipe down on the grab handle or the title row to close
     sheet.addEventListener("pointerdown", (event) => {
@@ -280,6 +413,8 @@ const Editor = (() => {
     });
 
     App.onStatus(updateLive);
+    App.onStatus(drawChart);
+    Trend.onChange(() => { chartKey = ""; drawChart(App.getStatus()); });
   }
 
   // The editor has no view of its own, it mounts once when the app starts
