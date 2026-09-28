@@ -173,5 +173,5 @@
     });
   }
 
-  Settings.addCard({ build, fill });
+  Settings.addCard({ id: "network", build, fill });
 })();

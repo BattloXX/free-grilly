@@ -307,8 +307,12 @@ details.probe-type[open] summary .icon { transform: rotate(90deg); }
 .summary-value { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); }
 
 /* Settings view */
-.settings-grid { display: grid; gap: 12px; }
-@media (min-width: 768px) { .settings-grid { grid-template-columns: repeat(2, 1fr); align-items: start; } }
+.settings-grid { display: flex; flex-direction: column; gap: 12px; }
+.settings-column { display: contents; }
+@media (min-width: 768px) {
+  .settings-grid { flex-direction: row; align-items: flex-start; }
+  .settings-column { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 12px; }
+}
 .settings-card .banner { margin: 0 0 12px; }
 .card-title {
   display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 4px;
