@@ -40,6 +40,11 @@ const Settings = (() => {
   let settings = null;
   let loadError;
 
+  // Card ids per desktop column, and the single-column order on phones
+  const LAYOUT = [["grill", "alarms", "display", "updates"], ["network", "mqtt", "opengrill"]];
+  const PHONE_ORDER = ["grill", "alarms", "display", "network", "mqtt", "opengrill", "updates"];
+
+  // card: { id, build(), fill(settings) }, id as used in LAYOUT
   function addCard(card) { extraCards.push(card); }
   function current() { return settings; }
 
@@ -208,11 +213,20 @@ const Settings = (() => {
   }
 
   function mount(el) {
-    el.innerHTML = '<h1 class="view-title">Settings</h1><p class="banner" hidden></p><div class="settings-grid"></div>';
+    el.innerHTML = '<h1 class="view-title">Settings</h1><p class="banner" hidden></p>' +
+      '<div class="settings-grid"><div class="settings-column"></div><div class="settings-column"></div></div>';
     loadError = el.querySelector(".banner");
     const grid = el.querySelector(".settings-grid");
-    CARDS.forEach((def) => grid.append(buildCard(def)));
-    extraCards.forEach((card) => grid.append(card.build()));
+    const columns = grid.querySelectorAll(".settings-column");
+    const cards = {};
+    CARDS.forEach((def) => { cards[def.id] = buildCard(def); });
+    extraCards.forEach((card) => { cards[card.id] = card.build(); });
+    // Two fixed columns on wide screens, so a tall card doesn't leave a gap next to it. On phones the
+    // columns dissolve and the cards follow PHONE_ORDER.
+    LAYOUT.forEach((ids, index) => ids.forEach((id) => {
+      cards[id].style.order = String(PHONE_ORDER.indexOf(id));
+      columns[index].append(cards[id]);
+    }));
     Controls.addPasswordToggles(grid);
   }
 

@@ -133,5 +133,5 @@
     authField.hidden = !isSet;
   }
 
-  Settings.addCard({ build, fill });
+  Settings.addCard({ id: "updates", build, fill });
 })();
