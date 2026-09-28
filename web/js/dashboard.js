@@ -20,11 +20,9 @@
       '<svg class="graph" viewBox="0 0 ' + GRAPH_WIDTH + ' ' + GRAPH_HEIGHT + '" preserveAspectRatio="none" aria-hidden="true" hidden>' +
       '<rect class="graph-band" x="0" width="' + GRAPH_WIDTH + '"/><path class="graph-area"/><path class="graph-line"/>' +
       '<line class="graph-target" x1="0" x2="' + GRAPH_WIDTH + '"/></svg>' +
-      '<span class="graph-label graph-high" hidden></span>' +
-      '<span class="graph-label graph-low" hidden></span>' +
-      '<span class="graph-label graph-start" hidden></span>' +
-      '<span class="graph-label graph-now" hidden>now</span>' +
       '</div>' +
+      // Under the strip instead of on it, where they collided with the line
+      '<div class="graph-labels" hidden><span class="graph-start"></span><span class="graph-range"></span><span>now</span></div>' +
       '<div class="graph-empty">Collecting readings…</div>' +
       '<div class="card-meta"><span class="probe-status"></span><span class="probe-time"></span></div>';
     card.addEventListener("click", () => {
@@ -46,11 +44,11 @@
       target: probe.target_temperature, minimum: probe.minimum_temperature,
     });
     const svg = card.querySelector(".graph");
-    const labels = card.querySelectorAll(".graph-label");
+    const labels = card.querySelector(".graph-labels");
     // `hidden` is an HTMLElement IDL property, not defined on SVGElement, so Chromium has no
     // reflecting setter for it here — toggle the attribute directly instead of svg.hidden = ...
     svg.toggleAttribute("hidden", result === null);
-    labels.forEach((label) => label.toggleAttribute("hidden", result === null));
+    labels.hidden = result === null;
     card.querySelector(".graph-empty").hidden = result !== null;
     if (result === null) return;
 
@@ -69,10 +67,7 @@
     const high = Math.round(result.highest);
     const low = Math.round(result.lowest);
     card.querySelector(".graph-start").textContent = Format.ago((result.endT - result.startT) / 1000);
-    card.querySelector(".graph-high").textContent = high + "°";
-    const lowLabel = card.querySelector(".graph-low");
-    lowLabel.textContent = low + "°";
-    lowLabel.toggleAttribute("hidden", low === high);
+    card.querySelector(".graph-range").textContent = low === high ? high + "°" : low + "–" + high + "°";
   }
 
   function fill(card, probe, unit) {
