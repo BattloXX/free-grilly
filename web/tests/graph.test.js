@@ -101,3 +101,16 @@ test("layout reports the first and last point times", () => {
   assert.equal(result.startT, 0);
   assert.equal(result.endT, 20000);
 });
+
+test("layout reports the padded scale", () => {
+  const result = Graph.layout(series([20, 20]), box);
+  assert.ok(Math.abs(result.scaleLow - 17.1) < 1e-9);
+  assert.ok(Math.abs(result.scaleHigh - 22.9) < 1e-9);
+});
+
+test("ticks are nice values inside the range", () => {
+  assert.deepEqual(Graph.ticks(17.1, 22.9), [18, 20, 22]);
+  assert.deepEqual(Graph.ticks(14, 101), [50, 100]);
+  assert.deepEqual(Graph.ticks(0, 300), [0, 100, 200, 300]);
+  assert.deepEqual(Graph.ticks(20.2, 21.4), [20.5, 21]);
+});

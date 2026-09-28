@@ -88,6 +88,11 @@ const Trend = (() => {
     return display(series[probeId] || [], unit);
   }
 
+  function clear(probeId) {
+    if (series[probeId]) series[probeId].length = 0;
+    bump(probeId);
+  }
+
   function onChange(listener) { listeners.push(listener); }
 
   // isRetry marks the single automatic retry of a failed load, so its own failure doesn't queue
@@ -161,7 +166,7 @@ const Trend = (() => {
     document.addEventListener("visibilitychange", () => { if (!document.hidden) loadNow(); });
   }
 
-  return { tierPoints, fromResponse, append, thin, toCelsius, display, points, onChange, load, onStatus, version };
+  return { tierPoints, fromResponse, append, thin, toCelsius, display, points, clear, onChange, load, onStatus, version };
 })();
 
 if (typeof module === "object" && module.exports) module.exports = Trend;
