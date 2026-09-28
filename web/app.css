@@ -207,16 +207,8 @@ body.offline .live { opacity: .4; }
 .graph-area { fill: var(--graph); opacity: .12; }
 .graph-target { stroke: var(--accent); stroke-width: 1; stroke-dasharray: 4 4; vector-effect: non-scaling-stroke; }
 .graph-band { fill: var(--good); opacity: .14; }
-.graph-label {
-  position: absolute; font-size: 10px; line-height: 1; color: var(--muted); pointer-events: none;
-  text-shadow: -1px -1px 2px var(--surface), 1px -1px 2px var(--surface),
-    -1px 1px 2px var(--surface), 1px 1px 2px var(--surface), 0 0 3px var(--surface);
-}
-.graph-high { top: 0; right: 0; }
-.graph-low { bottom: 11px; right: 0; }
-.graph-start { bottom: 0; left: 0; }
-.graph-now { bottom: 0; right: 0; }
-.graph-empty { display: flex; align-items: center; justify-content: center; height: 46px; margin-top: 8px; border: 1px dashed var(--border); border-radius: 8px; font-size: 12px; color: var(--muted); }
+.graph-labels { display: flex; justify-content: space-between; gap: 8px; margin-top: 4px; font-size: 11px; line-height: 1; color: var(--muted); }
+.graph-empty { display: flex; align-items: center; justify-content: center; height: 61px;  /* graph + label row, so cards keep their height */ margin-top: 8px; border: 1px dashed var(--border); border-radius: 8px; font-size: 12px; color: var(--muted); }
 .probe-time.eta { color: var(--accent-text); font-weight: 600; }
 /* Card for a probe currently causing a sounding alarm: a red outline that pulses, static under
    prefers-reduced-motion via the global rule above. */
