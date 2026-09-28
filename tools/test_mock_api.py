@@ -4,6 +4,15 @@ import unittest
 import mock_api
 
 
+class InfoTest(unittest.TestCase):
+    def test_info_names_the_firmware_and_its_capabilities(self):
+        status, data = mock_api.handle("GET", "/api/info", None)
+        self.assertEqual(200, status)
+        self.assertEqual("grilly-plus", data["firmware"])
+        self.assertEqual(1, data["api_version"])
+        self.assertIn("history", data["capabilities"])
+
+
 class HistoryTest(unittest.TestCase):
     def test_all_connected_probes_have_coarse_history(self):
         status, data = mock_api.handle("GET", "/api/history", None)

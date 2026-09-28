@@ -2,6 +2,7 @@
 
 
 void get_api_grill();
+void get_api_info();
 
 void get_api_probes();
 void post_api_probes();

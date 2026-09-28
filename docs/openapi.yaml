@@ -667,6 +667,52 @@ paths:
                     type: string
                     example: "The current admin password is needed to change it"
 
+  /info:
+    get:
+      tags:
+        - utility
+      summary: What this firmware is and which features it has
+      description: >
+        For apps and integrations. `capabilities` lists features added on top of Free-Grilly; check for
+        a name before using the feature, missing names mean an older firmware. `api_version` is raised
+        only when an existing endpoint changes in an incompatible way.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  firmware:
+                    type: string
+                    example: grilly-plus
+                  firmware_version:
+                    type: string
+                    example: "26.09.28.1"
+                  api_version:
+                    type: integer
+                    example: 1
+                  unique_id:
+                    type: string
+                    example: abac5767-4957-435a-aed6-4a94bae88716
+                  hostname:
+                    type: string
+                    example: grilly-plus-abac5767.local
+                  probe_count:
+                    type: integer
+                    example: 8
+                  capabilities:
+                    type: array
+                    items:
+                      type: string
+                      enum: [history, eta, clear_history, alarm_mute, alarm_probes, calibration_offset, diagnostics, ota_upload]
+                    description: >
+                      history = GET /history; eta = eta_seconds per probe; clear_history = POST /history/clear and
+                      MQTT config/clear_history; alarm_mute = POST /alarm/mute and MQTT config/mute; alarm_probes =
+                      alarm per probe in /grill; calibration_offset = offset_celcius per probe; diagnostics = reset,
+                      off reason and battery millivolts in /grill; ota_upload = POST /update.
+
   /wifiscan:
     get:
       tags:

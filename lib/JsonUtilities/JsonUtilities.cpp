@@ -758,6 +758,27 @@ jsonResult JsonUtilities::save_opengrill_probes(char* raw_json){
     return {true, "Ok"};
 }
 
+void JsonUtilities::load_json_info(char* buffer){
+    JsonDocument jsondoc;
+    SharedLock lock;    // copies the firmware version and uuid Strings
+
+    jsondoc["firmware"]         = "grilly-plus";
+    jsondoc["firmware_version"] = config::grill_firmware_version;
+    jsondoc["api_version"]      = 1;    // raised only when an existing endpoint changes incompatibly
+    jsondoc["unique_id"]        = config::grill_uuid;
+    jsondoc["hostname"]         = String(grill::hostname) + ".local";
+    jsondoc["probe_count"]      = 8;
+
+    // Features added on top of Free-Grilly. A client checks for a name before using the feature.
+    JsonArray capabilities = jsondoc["capabilities"].to<JsonArray>();
+    for (const char* capability : {"history", "eta", "clear_history", "alarm_mute", "alarm_probes",
+                                   "calibration_offset", "diagnostics", "ota_upload"}) {
+        capabilities.add(capability);
+    }
+
+    serializeJson(jsondoc, buffer, config::json_buffer_size);
+}
+
 void JsonUtilities::load_json_wifiscan(char* buffer){
     JsonDocument jsondoc;
 
