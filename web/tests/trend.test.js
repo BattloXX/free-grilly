@@ -71,6 +71,24 @@ test("append does not double up a gap when the previous point is already a gap",
   assert.deepEqual(points, [{ t: 0, c: 20 }, { t: 10000, c: null }, { t: 40001, c: 25 }]);
 });
 
+test("append with the grill's minute history step adds no gap for a 70s old point", () => {
+  const points = [{ t: 0, c: 20 }];
+  assert.equal(Trend.append(points, 25, 70000, 60000), true);
+  assert.deepEqual(points, [{ t: 0, c: 20 }, { t: 70000, c: 25 }]);
+});
+
+test("append with a minute history step still inserts a gap past 3 append intervals beyond it", () => {
+  const points = [{ t: 0, c: 20 }];
+  assert.equal(Trend.append(points, 25, 100000, 60000), true);
+  assert.deepEqual(points, [{ t: 0, c: 20 }, { t: 60000, c: null }, { t: 100000, c: 25 }]);
+});
+
+test("append keeps the default 10s gap behaviour when no step is given", () => {
+  const points = [{ t: 0, c: 20 }];
+  Trend.append(points, 25, 30001);
+  assert.deepEqual(points, [{ t: 0, c: 20 }, { t: 10000, c: null }, { t: 30001, c: 25 }]);
+});
+
 test("thin keeps points that touch a gap in the older half even at an odd index", () => {
   const points = Array.from({ length: 10 }, (_, i) => ({ t: i, c: i }));
   points[3].c = null;   // index 3 falls in the older half (indices 0-4) and is odd

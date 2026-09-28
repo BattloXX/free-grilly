@@ -9,6 +9,7 @@ const Trend = (() => {
   const series = {};               // probe_id -> [{t, c}], oldest first
   const versions = {};             // probe_id -> bumped whenever its series changes, for cheap redraw checks
   const connectedBefore = {};      // probe_id -> connected in the previous status
+  const stepMs = {};               // probe_id -> the grill's coarse history interval, from the last load
   const listeners = [];
   let loading = false;
   let pending = false;             // a reload was requested while one was already in flight
@@ -55,13 +56,16 @@ const Trend = (() => {
     points.splice(0, points.length, ...older, ...points.slice(half));
   }
 
-  function append(points, celsius, nowMs) {
+  // stepMs is the caller's own sample spacing (APPEND_EVERY_MS for live polling, or a probe's coarser
+  // history interval right after a load) - the gap threshold is relative to it so a history point
+  // that is merely as old as one of its own coarse intervals isn't mistaken for an outage.
+  function append(points, celsius, nowMs, stepMs = APPEND_EVERY_MS) {
     const last = points[points.length - 1];
     if (last && nowMs - last.t < APPEND_EVERY_MS) return false;
     // A probe that dropped off and came back leaves a hole wider than a normal sample gap; show it
     // as a gap in the graph instead of a line bridging the outage.
-    if (last && last.c !== null && nowMs - last.t > 3 * APPEND_EVERY_MS) {
-      points.push({ t: last.t + APPEND_EVERY_MS, c: null });
+    if (last && last.c !== null && nowMs - last.t > stepMs + 2 * APPEND_EVERY_MS) {
+      points.push({ t: last.t + stepMs, c: null });
     }
     points.push({ t: nowMs, c: celsius });
     thin(points, MAX_POINTS);
@@ -92,10 +96,14 @@ const Trend = (() => {
     if (loading) { pending = true; return; }
     loading = true;
     try {
-      const fresh = fromResponse(await Api.get("/api/history", 8000), Date.now());
+      const response = await Api.get("/api/history", 8000);
+      const fresh = fromResponse(response, Date.now());
       const touched = new Set([...Object.keys(series), ...Object.keys(fresh)]);
       Object.keys(series).forEach((id) => { delete series[id]; });
       Object.assign(series, fresh);
+      for (const probe of (response && response.probes) || []) {
+        stepMs[probe.probe_id] = probe.coarse.interval * 1000;
+      }
       touched.forEach(bump);
       retryScheduled = false;
       listeners.forEach((listener) => listener());
@@ -139,7 +147,8 @@ const Trend = (() => {
       connectedBefore[id] = probe.connected;
       if (!probe.connected) continue;
       if (!series[id]) series[id] = [];
-      if (append(series[id], toCelsius(probe.temperature, status.temperature_unit), now)) bump(id);
+      const step = stepMs[id] || APPEND_EVERY_MS;
+      if (append(series[id], toCelsius(probe.temperature, status.temperature_unit), now, step)) bump(id);
     }
     // The very first status and a probe reconnecting both want a reload, but only the reconnect
     // case is debounced - the first load should never wait.

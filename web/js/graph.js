@@ -72,7 +72,13 @@ const Graph = (() => {
     }
     if (run.length) runs.push(run);
 
-    const line = runs.map((r) => "M" + r.map(([px, py]) => px + " " + py).join("L")).join("");
+    // A run of a single point has no line to draw ("Mx y" alone is invisible); repeat it with an L so
+    // it shows up as a dot instead of silently vanishing (the round line caps and non-scaling stroke
+    // turn that zero-length segment into a visible point).
+    const line = runs.map((r) => {
+      const path = r.length === 1 ? [r[0], r[0]] : r;
+      return "M" + path.map(([px, py]) => px + " " + py).join("L");
+    }).join("");
     const area = runs.filter((r) => r.length > 1).map((r) =>
       "M" + r[0][0] + " " + opts.height + "L" + r.map(([px, py]) => px + " " + py).join("L") +
       "L" + r[r.length - 1][0] + " " + opts.height + "Z").join("");

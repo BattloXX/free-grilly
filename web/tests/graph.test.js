@@ -62,6 +62,12 @@ test("the target line stays on canvas even below all plotted values", () => {
   assert.ok(result.target >= 0 && result.target <= 46);
 });
 
+test("a lone point after a gap is drawn as a dot, not dropped", () => {
+  const result = Graph.layout(series([20, 21, null, 22]), box);
+  assert.equal(result.line.split("M").length - 1, 2);
+  assert.match(result.line, /L240 [\d.]+$/);
+});
+
 test("downsample averages equal time slices", () => {
   const out = Graph.downsample(series([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]), 5);
   assert.deepEqual(out.map((p) => p.v), [0.5, 2.5, 4.5, 6.5, 8.5]);
