@@ -35,7 +35,9 @@
       target: probe.target_temperature, minimum: probe.minimum_temperature,
     });
     const svg = card.querySelector(".graph");
-    svg.hidden = result === null;
+    // `hidden` is an HTMLElement IDL property, not defined on SVGElement, so Chromium has no
+    // reflecting setter for it here — toggle the attribute directly instead of svg.hidden = ...
+    svg.toggleAttribute("hidden", result === null);
     card.querySelector(".graph-empty").hidden = result !== null;
     if (result === null) return;
 
