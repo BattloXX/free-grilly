@@ -57,6 +57,13 @@ test("duration", () => {
   assert.equal(Format.duration(18720), "5h 12m");
 });
 
+test("ago formats now and durations in the past", () => {
+  assert.equal(Format.ago(0), "now");
+  assert.equal(Format.ago(59), "now");
+  assert.equal(Format.ago(250), "4m ago");
+  assert.equal(Format.ago(7800), "2h 10m ago");
+});
+
 test("empty sockets are grouped into ranges", () => {
   assert.equal(Format.emptySockets([]), "");
   assert.equal(Format.emptySockets([8]), "Socket 8 empty");
