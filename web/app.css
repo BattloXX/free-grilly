@@ -188,15 +188,26 @@ body.offline .live { opacity: .4; }
 .probe-name { font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .probe-temp { font-size: 40px; font-weight: 700; line-height: 1.15; margin-top: 2px; font-variant-numeric: tabular-nums; }
 .probe-temp .unit { font-size: 16px; font-weight: 500; color: var(--muted); margin-left: 3px; }
-.progress { height: 6px; margin-top: 10px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
-.progress i { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--warn), var(--accent)); transition: width .4s; }
 .card-meta { display: flex; justify-content: space-between; gap: 8px; margin-top: 8px; font-size: 13px; color: var(--muted); }
 .probe-card[data-status="ready"] .probe-status,
 .probe-card[data-status="in-range"] .probe-status { color: var(--good); font-weight: 600; }
-.probe-card[data-status="ready"] .progress i,
-.probe-card[data-status="in-range"] .progress i { background: var(--good); }
 .probe-card[data-status="low"] .probe-status,
 .probe-card[data-status="high"] .probe-status { color: var(--warn); font-weight: 600; }
+/* Graph strip: the line colour follows the probe's status */
+.probe-card { --graph: var(--muted); }
+.probe-card[data-status="to-go"] { --graph: var(--warn); }
+.probe-card[data-status="ready"],
+.probe-card[data-status="in-range"] { --graph: var(--good); }
+.probe-card[data-status="low"],
+.probe-card[data-status="high"] { --graph: var(--warn); }
+.probe-card.alarming { --graph: var(--bad); }
+.graph { display: block; width: 100%; height: 46px; margin-top: 8px; overflow: visible; }
+.graph-line { fill: none; stroke: var(--graph); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.graph-area { fill: var(--graph); opacity: .12; }
+.graph-target { stroke: var(--accent); stroke-width: 1; stroke-dasharray: 4 4; vector-effect: non-scaling-stroke; }
+.graph-band { fill: var(--good); opacity: .14; }
+.graph-empty { display: flex; align-items: center; justify-content: center; height: 46px; margin-top: 8px; border: 1px dashed var(--border); border-radius: 8px; font-size: 12px; color: var(--muted); }
+.probe-time.eta { color: var(--accent-text); font-weight: 600; }
 /* Card for a probe currently causing a sounding alarm: a red outline that pulses, static under
    prefers-reduced-motion via the global rule above. */
 .probe-card.alarming { outline: 2px solid var(--bad); outline-offset: -2px; animation: card-alarm-pulse 1.4s ease-in-out infinite; }
@@ -331,6 +342,8 @@ details.advanced summary { display: flex; align-items: center; min-height: 44px;
 
 /* Firmware updates card */
 .settings-card [data-update] { margin-top: 12px; width: 100%; }
+.progress { height: 6px; margin-top: 10px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+.progress i { display: block; height: 100%; border-radius: 3px; background: var(--accent); transition: width .4s; }
 .progress.upload i { background: var(--accent); }
 .settings-card input[type="file"] { padding: 10px 12px; }
 

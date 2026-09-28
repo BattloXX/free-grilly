@@ -103,6 +103,15 @@ const Format = (() => {
     return hours > 0 ? hours + "h " + minutes + "m" : minutes + "m";
   }
 
+  // Time until the target from the grill's eta_seconds. "" when the grill doesn't know (-1).
+  function eta(seconds) {
+    if (!(seconds >= 0)) return "";
+    if (seconds < 60) return "ready in <1m";
+    const minutes = Math.round(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    return "ready in ~" + (hours > 0 ? hours + "h " + (minutes % 60) + "m" : minutes + "m");
+  }
+
   function emptySockets(ids) {
     if (ids.length === 0) return "";
     const sorted = [...ids].sort((a, b) => a - b);
@@ -126,7 +135,7 @@ const Format = (() => {
   }
 
   return { unitSymbol, number, temperature, signal, battery, batteryDiagnostics, resetReasonText,
-           offReasonText, alarmMode, probeStatus, alarmLabel, duration, emptySockets, changedFields };
+           offReasonText, alarmMode, probeStatus, alarmLabel, duration, eta, emptySockets, changedFields };
 })();
 
 if (typeof module === "object" && module.exports) module.exports = Format;

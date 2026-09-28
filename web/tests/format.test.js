@@ -65,6 +65,15 @@ test("empty sockets are grouped into ranges", () => {
   assert.equal(Format.emptySockets([1, 3]), "Sockets 1, 3 empty");
 });
 
+test("eta formats the time to target and hides unknown", () => {
+  assert.equal(Format.eta(-1), "");
+  assert.equal(Format.eta(undefined), "");
+  assert.equal(Format.eta(30), "ready in <1m");
+  assert.equal(Format.eta(600), "ready in ~10m");
+  assert.equal(Format.eta(4800), "ready in ~1h 20m");
+  assert.equal(Format.eta(3599), "ready in ~1h 0m");
+});
+
 test("changed fields", () => {
   assert.deepEqual(Format.changedFields({ a: 1, b: "x" }, { a: 1, b: "y", c: true }), { b: "y", c: true });
   assert.deepEqual(Format.changedFields({ a: 1 }, { a: 1 }), {});
