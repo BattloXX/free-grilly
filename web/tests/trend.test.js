@@ -122,6 +122,18 @@ test("clear empties the series and bumps the version", () => {
   delete global.Api;
 });
 
+test("clear notifies onChange listeners", () => {
+  global.Api = { get: async () => ({ probes: [] }) };
+  delete require.cache[require.resolve("../js/trend.js")];
+  const FreshTrend = require("../js/trend.js");
+  FreshTrend.onStatus({ temperature_unit: "celcius", probes: [{ probe_id: 4, connected: true, temperature: 20 }] });
+  let calls = 0;
+  FreshTrend.onChange(() => { calls++; });
+  FreshTrend.clear(4);
+  assert.equal(calls, 1);
+  delete global.Api;
+});
+
 test("onStatus loads immediately on the first status", async () => {
   let calls = 0;
   global.Api = { get: async () => { calls++; return { probes: [] }; } };

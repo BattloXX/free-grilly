@@ -88,9 +88,13 @@ const Trend = (() => {
     return display(series[probeId] || [], unit);
   }
 
+  // Notifies listeners so the card resets immediately, without waiting for the next status poll or
+  // history reload. editor.js's own onChange handler only redraws the chart, and onClear() only calls
+  // Trend.load() afterwards (not clear() again), so this can't loop back into another clear.
   function clear(probeId) {
     if (series[probeId]) series[probeId].length = 0;
     bump(probeId);
+    listeners.forEach((listener) => listener());
   }
 
   function onChange(listener) { listeners.push(listener); }

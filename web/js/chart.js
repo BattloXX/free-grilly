@@ -42,7 +42,10 @@ const Chart = (() => {
       }
 
       const y = (v) => (result.scaleHigh - v) / (result.scaleHigh - result.scaleLow) * HEIGHT;
-      const values = Graph.ticks(result.scaleLow, result.scaleHigh, 3);
+      // Drop ticks that land within 8px of either edge, so their labels don't poke above the svg or
+      // overlap the "…ago / now" row underneath it.
+      const values = Graph.ticks(result.scaleLow, result.scaleHigh, 3)
+        .filter((v) => y(v) > 8 && y(v) < HEIGHT - 8);
       grid.innerHTML = values.map((v) => '<line x1="0" x2="' + WIDTH + '" y1="' + y(v) + '" y2="' + y(v) + '"/>').join("");
       yLabels.innerHTML = values.map((v) =>
         '<span style="top:' + (y(v) / HEIGHT * 100) + '%">' + v + "°</span>").join("");

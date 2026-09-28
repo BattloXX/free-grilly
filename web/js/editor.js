@@ -22,6 +22,9 @@ const Editor = (() => {
   let fine = null;
   let chartKey = "";
   let clearTimer = null;
+  let clearNote;
+  let generation = 0;
+  let fineLoading = false;
 
   function unit() {
     const status = App.getStatus();
@@ -157,7 +160,8 @@ const Editor = (() => {
     const u = status.temperature_unit;
     const mode = Format.alarmMode(probe);
     const key = [range, Trend.version(probeId), fine ? fine.length : -1, u, mode,
-                 probe.target_temperature, probe.minimum_temperature, probe.alarm].join("|");
+                 probe.target_temperature, probe.minimum_temperature, probe.alarm,
+                 Format.probeStatus(probe).kind].join("|");
     if (key === chartKey) return;
     chartKey = key;
     chart.update(range === "cook" ? Trend.points(probeId, u) : recentPoints(probeId, u), {
@@ -166,15 +170,22 @@ const Editor = (() => {
     });
   }
 
+  // gen guards against a fetch that is still in flight when a clear (or a fresh open()) invalidates
+  // it - without this, a late response could put the pre-clear fine data back on screen.
   async function loadFine(id) {
+    const gen = generation;
+    fineLoading = true;
     try {
       const response = await Api.get("/api/history?probe=" + id, 5000);
-      if (probeId !== id) return;
+      if (probeId !== id || gen !== generation) return;
       const entry = response && response.probes && response.probes[0];
       fine = entry && entry.fine ? Trend.tierPoints(entry.fine, Date.now()) : [];
     } catch (error) {
-      if (probeId === id) fine = [];   // the whole-cook points still fill the last 30 minutes
+      if (probeId === id && gen === generation) fine = [];   // the whole-cook points still fill the last 30 minutes
+    } finally {
+      fineLoading = false;
     }
+    if (probeId !== id || gen !== generation) return;
     chartKey = "";
     drawChart(App.getStatus());
   }
@@ -182,7 +193,7 @@ const Editor = (() => {
   function onRangeChange() {
     range = [...rangeInputs].find((input) => input.checked).value;
     chartKey = "";
-    if (range === "recent" && fine === null) loadFine(probeId);
+    if (range === "recent" && fine === null && !fineLoading) loadFine(probeId);
     drawChart(App.getStatus());
   }
 
@@ -195,6 +206,7 @@ const Editor = (() => {
 
   async function onClear() {
     if (!clearButton.dataset.confirm) {
+      clearTimeout(clearTimer);   // a leftover "History cleared" reset must not cut the new confirm short
       clearButton.dataset.confirm = "1";
       clearButton.textContent = "Tap again to clear the history";
       clearTimer = setTimeout(resetClear, 4000);
@@ -203,14 +215,24 @@ const Editor = (() => {
     clearTimeout(clearTimer);
     const id = probeId;
     clearButton.disabled = true;
+    if (clearNote) clearNote.textContent = "";
     try {
       await Api.post("/api/history/clear", { probe_id: id });
       Trend.clear(id);
-      if (probeId === id) { fine = range === "recent" ? [] : null; chartKey = ""; drawChart(App.getStatus()); }
+      generation++;   // invalidate any loadFine() still in flight for the pre-clear data
+      if (probeId === id) {
+        fine = range === "recent" ? [] : null;
+        chartKey = "";
+        drawChart(App.getStatus());
+        clearButton.textContent = "History cleared";
+        if (clearNote) clearNote.textContent = "History cleared";
+      }
       Trend.load();
-      if (probeId === id) clearButton.textContent = "History cleared";
     } catch (error) {
-      if (probeId === id) clearButton.textContent = error.message || "Couldn't clear the history";
+      if (probeId === id) {
+        clearButton.textContent = error.message || "Couldn't clear the history";
+        if (clearNote) clearNote.textContent = clearButton.textContent;
+      }
     } finally {
       if (probeId === id) {
         clearButton.disabled = false;
@@ -231,6 +253,7 @@ const Editor = (() => {
     range = "cook";
     fine = null;
     chartKey = "";
+    generation++;   // invalidate a loadFine() left over from a previous probe or clear
     rangeInputs.forEach((input) => { input.checked = input.value === "cook"; });
     resetClear();
     drawChart(App.getStatus());
@@ -319,8 +342,9 @@ const Editor = (() => {
       '    <div class="field"><span class="field-label">Calibration offset (°C)</span><div id="editor-offset"></div>' +
       '      <p class="hint">Saved for this socket, not for the probe. If you move the probe to another socket, set it again there.</p></div>' +
       '  </details>' +
-      '  <button type="button" class="link-button danger" id="editor-clear">Clear history</button>' +
-      '</fieldset>';
+      '</fieldset>' +
+      '<button type="button" class="link-button danger" id="editor-clear">Clear history</button>' +
+      '<span class="visually-hidden" id="editor-clear-note" aria-live="polite"></span>';
     document.body.append(backdrop, sheet);
 
     form = sheet.querySelector(".editor-form");
@@ -340,6 +364,7 @@ const Editor = (() => {
     chartBox = sheet.querySelector("#editor-chart-box");
     rangeInputs = sheet.querySelectorAll('input[name="editor-range"]');
     clearButton = sheet.querySelector("#editor-clear");
+    clearNote = sheet.querySelector("#editor-clear-note");
 
     Object.entries(TYPES).forEach(([value, label]) => typeSelect.add(new Option(label, value)));
 
