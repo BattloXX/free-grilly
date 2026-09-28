@@ -4,6 +4,7 @@
 #include <Preferences.h>
 
 #include "Probe.h"
+#include "History.h"
 #include "Buzzer.h"
 #include "Mqtt.h"
 #include "Opengrill.h"
@@ -215,6 +216,8 @@ namespace grill{
     Probe probe_6 = Probe(6);
     Probe probe_7 = Probe(7);
     Probe probe_8 = Probe(8);
+
+    history::ProbeHistory probe_history[8];
 }
 
 namespace web{
@@ -243,7 +246,7 @@ namespace task{
     int mqttStackSize         = 8000;
     int opengrillStackSize    = 8000;
     int powerbuttonStackSize  = 10000; //Needed to be able to handle factory reset
-    int probesStackSize       = 2048;
+    int probesStackSize       = 3072;   // room for the history and eta calculation
     int screenStackSize       = 3000;
     int webserverStackSize    = 8000;
     int stackmonitorStackSize = 4000;

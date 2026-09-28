@@ -8,6 +8,7 @@
 #include "Api.h"
 #include "Buzzer.h"
 #include "GrillConfig.h"
+#include "History.h"
 #include "JsonUtilities.h"
 #include "Mqtt.h"
 #include "Network.h"
@@ -577,6 +578,26 @@ void task_powerbutton(void* pvParameters) {
 // * Probes
 // ***********************************
 
+// Adds a history sample for every probe and refreshes its time-to-target estimate
+void record_history(){
+    Probe* probes[] = {&grill::probe_1, &grill::probe_2, &grill::probe_3, &grill::probe_4,
+                       &grill::probe_5, &grill::probe_6, &grill::probe_7, &grill::probe_8};
+    uint32_t now_s = millis() / 1000;
+
+    SharedLock lock;    // the history is read by the webserver and mqtt tasks, temperature_unit can change
+    bool fahrenheit = config::temperature_unit == "fahrenheit";
+
+    for(int i = 0; i < 8; i++){
+        Probe& probe = *probes[i];
+        grill::probe_history[i].add(now_s, probe.connected, probe.celcius);
+
+        // Only target mode has something to count down to. The target is in the display unit.
+        bool target_mode = probe.connected && probe.target_temperature > 0 && probe.minimum_temperature <= 0;
+        float target_celcius = fahrenheit ? (probe.target_temperature - 32) / 1.8f : probe.target_temperature;
+        probe.eta_seconds = target_mode ? grill::probe_history[i].eta_seconds(target_celcius) : history::ETA_UNKNOWN;
+    }
+}
+
 void task_probes(void* pvParameters) {
     Serial.println("Launching task :: PROBES");
     delay(5);   //Give FreeRtos a chance to properly schedule the task
@@ -584,6 +605,10 @@ void task_probes(void* pvParameters) {
     pinMode(gpio::mux_selector_a, OUTPUT);
     pinMode(gpio::mux_selector_b, OUTPUT);
     pinMode(gpio::mux_selector_c, OUTPUT);
+
+    // Samples every FINE_INTERVAL_S. Advanced by the interval instead of set to millis(), so the loop's
+    // own run time doesn't stretch the history's time axis.
+    unsigned long next_history_ms = millis();
 
     for (;;) {
         // Read probes and also check if beeps/alarms/.. are needed
@@ -595,6 +620,13 @@ void task_probes(void* pvParameters) {
         grill::probe_6.calculate_temperature(); grill::probe_6.check_temperature_status();
         grill::probe_7.calculate_temperature(); grill::probe_7.check_temperature_status();
         grill::probe_8.calculate_temperature(); grill::probe_8.check_temperature_status();
+
+        if((long)(millis() - next_history_ms) >= 0){
+            record_history();
+            next_history_ms += history::FINE_INTERVAL_S * 1000;
+            // Fell behind by more than one sample (should not happen): resync instead of catching up
+            if((long)(millis() - next_history_ms) >= 0){ next_history_ms = millis() + history::FINE_INTERVAL_S * 1000; }
+        }
 
         delay(500);
     }
