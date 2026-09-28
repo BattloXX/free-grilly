@@ -1,5 +1,8 @@
 // Grill view: one card per connected probe in socket order. Tapping a card opens the probe editor.
 (() => {
+  const GRAPH_WIDTH = 240;   // viewBox units, the svg stretches to the card width
+  const GRAPH_HEIGHT = 46;
+
   let list;
   let emptyLine;
   let noProbes;
@@ -13,12 +16,40 @@
     card.innerHTML =
       '<div class="card-head"><span class="probe-name"></span><span class="probe-alarm"></span></div>' +
       '<div class="probe-temp"><span class="value"></span><span class="unit"></span></div>' +
-      '<div class="progress" hidden><i></i></div>' +
+      '<svg class="graph" viewBox="0 0 ' + GRAPH_WIDTH + ' ' + GRAPH_HEIGHT + '" preserveAspectRatio="none" aria-hidden="true" hidden>' +
+      '<rect class="graph-band" x="0" width="' + GRAPH_WIDTH + '"/><path class="graph-area"/><path class="graph-line"/>' +
+      '<line class="graph-target" x1="0" x2="' + GRAPH_WIDTH + '"/></svg>' +
+      '<div class="graph-empty">Collecting readings…</div>' +
       '<div class="card-meta"><span class="probe-status"></span><span class="probe-time"></span></div>';
     card.addEventListener("click", () => {
       if (typeof Editor !== "undefined") Editor.open(id, card);
     });
     return card;
+  }
+
+  // Draws the whole cook into the card's svg, or shows the placeholder until there are 2 readings
+  function drawGraph(card, probe, unit) {
+    const mode = Format.alarmMode(probe);
+    const result = Graph.layout(Trend.points(probe.probe_id, unit), {
+      width: GRAPH_WIDTH, height: GRAPH_HEIGHT, mode,
+      target: probe.target_temperature, minimum: probe.minimum_temperature,
+    });
+    const svg = card.querySelector(".graph");
+    svg.hidden = result === null;
+    card.querySelector(".graph-empty").hidden = result !== null;
+    if (result === null) return;
+
+    svg.querySelector(".graph-line").setAttribute("d", result.line);
+    svg.querySelector(".graph-area").setAttribute("d", result.area);
+    const target = svg.querySelector(".graph-target");
+    target.style.display = mode === "target" ? "" : "none";
+    if (mode === "target") { target.setAttribute("y1", result.target); target.setAttribute("y2", result.target); }
+    const band = svg.querySelector(".graph-band");
+    band.style.display = mode === "range" ? "" : "none";
+    if (mode === "range") {
+      band.setAttribute("y", result.target);
+      band.setAttribute("height", Math.max(0, result.minimum - result.target));
+    }
   }
 
   function fill(card, probe, unit) {
@@ -29,14 +60,15 @@
     card.querySelector(".probe-alarm").textContent = Format.alarmLabel(probe);
     card.querySelector(".value").textContent = Format.number(probe.temperature);
     card.querySelector(".unit").textContent = Format.unitSymbol(unit);
-    const progress = card.querySelector(".progress");
-    progress.hidden = status.progress === null;
-    if (status.progress !== null) progress.firstElementChild.style.width = Math.round(status.progress * 100) + "%";
     const statusText = probe.alarm ? ("Alarm" + (status.text ? " · " + status.text : "")) : status.text;
     card.querySelector(".probe-status").textContent = statusText;
-    card.querySelector(".probe-time").textContent = Format.duration(probe.connected_seconds);
+    const eta = Format.eta(probe.eta_seconds);
+    const time = card.querySelector(".probe-time");
+    time.textContent = eta || Format.duration(probe.connected_seconds);
+    time.classList.toggle("eta", eta !== "");
+    drawGraph(card, probe, unit);
     card.setAttribute("aria-label",
-      probe.name + ", " + Format.temperature(probe.temperature, unit) + (statusText ? ", " + statusText : "") + ". Edit probe");
+      probe.name + ", " + Format.temperature(probe.temperature, unit) + (statusText ? ", " + statusText : "") + (eta ? ", " + eta : "") + ". Edit probe");
   }
 
   function render(status) {
@@ -72,6 +104,7 @@
     emptyLine = el.querySelector(".empty-sockets");
     noProbes = el.querySelector(".no-probes");
     App.onStatus(render);
+    Trend.onChange(() => { const status = App.getStatus(); if (status) render(status); });
   }
 
   App.register("grill", { mount });
