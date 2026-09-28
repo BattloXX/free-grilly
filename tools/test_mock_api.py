@@ -39,6 +39,33 @@ class HistoryTest(unittest.TestCase):
         self.assertIn("eta_seconds", data["probes"][0])
         self.assertEqual(-1, data["probes"][3]["eta_seconds"])
 
+    def test_age_is_zero_when_values_is_empty(self):
+        json_headers = {"Content-Type": "application/json"}
+        status, _ = mock_api.handle("POST", "/api/history/clear", json.dumps({"probe_id": 1}).encode(), json_headers)
+        self.assertEqual(200, status)
+        try:
+            _, data = mock_api.handle("GET", "/api/history", None, query="probe=1")
+            coarse = data["probes"][0]["coarse"]
+            fine = data["probes"][0]["fine"]
+            self.assertEqual([], coarse["values"])
+            self.assertEqual(0, coarse["age"])
+            self.assertEqual([], fine["values"])
+            self.assertEqual(0, fine["age"])
+        finally:
+            mock_api.CLEARED_AT.pop(1, None)
+
+    def test_clear_rejects_invalid_json(self):
+        json_headers = {"Content-Type": "application/json"}
+        status, data = mock_api.handle("POST", "/api/history/clear", b"not json", json_headers)
+        self.assertEqual(400, status)
+        self.assertEqual({"error": "Could not deserialize json"}, data)
+
+    def test_clear_rejects_non_object_body(self):
+        json_headers = {"Content-Type": "application/json"}
+        status, data = mock_api.handle("POST", "/api/history/clear", json.dumps([1, 2]).encode(), json_headers)
+        self.assertEqual(400, status)
+        self.assertEqual({"error": "Could not deserialize json"}, data)
+
 
 if __name__ == "__main__":
     unittest.main()

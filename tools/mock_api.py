@@ -76,9 +76,12 @@ def history(only_probe=None):
     for p in PROBES:
         if not p["connected"] or (only_probe and p["probe_id"] != only_probe):
             continue
-        entry = {"probe_id": p["probe_id"], "coarse": {"interval": 60, "age": 20, "values": history_values(p, 60, 119)}}
+        coarse_values = history_values(p, 60, 119)
+        entry = {"probe_id": p["probe_id"],
+                  "coarse": {"interval": 60, "age": 20 if coarse_values else 0, "values": coarse_values}}
         if only_probe:
-            entry["fine"] = {"interval": 10, "age": 3, "values": history_values(p, 10, 180)}
+            fine_values = history_values(p, 10, 180)
+            entry["fine"] = {"interval": 10, "age": 3 if fine_values else 0, "values": fine_values}
         result.append(entry)
     return {"probes": result}
 
@@ -159,7 +162,13 @@ def handle(method, path, body, headers=None, query=""):
     if method == "POST" and path == "/api/history/clear":
         if not (headers or {}).get("Content-Type", "").startswith("application/json"):
             return 415, {"error": "Content-Type should be application/json"}
-        probe_id = int(json.loads(body or b"{}").get("probe_id", 0))
+        try:
+            parsed = json.loads(body or b"{}")
+            if not isinstance(parsed, dict):
+                raise ValueError("not an object")
+        except ValueError:
+            return 400, {"error": "Could not deserialize json"}
+        probe_id = int(parsed.get("probe_id", 0))
         if not 1 <= probe_id <= 8:
             return 400, {"error": "probe_id should be between 1 and 8"}
         CLEARED_AT[probe_id] = time.time()

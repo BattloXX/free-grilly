@@ -113,4 +113,13 @@ int32_t ProbeHistory::eta_seconds(float target_celcius) const {
     return (int32_t)(eta + 0.5);
 }
 
+int32_t eta_for_probe(const ProbeHistory& history, bool connected, float target, float minimum, bool fahrenheit){
+    // Only target mode has something to count down to. The target is in the display unit.
+    bool target_mode = connected && target > 0 && minimum <= 0;
+    if(!target_mode){ return ETA_UNKNOWN; }
+
+    float target_celcius = fahrenheit ? (target - 32) / 1.8f : target;
+    return history.eta_seconds(target_celcius);
+}
+
 }

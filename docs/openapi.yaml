@@ -192,6 +192,7 @@ components:
                 description: True while this probe is one of the causes of a sounding alarm_sounding
               eta_seconds:
                 type: integer
+                readOnly: true
                 description: >-
                   Seconds until the target temperature at the current rate. -1 when unknown: not in
                   target mode, not rising by at least 0.05 °C per minute, less than 3 minutes of
@@ -203,6 +204,7 @@ components:
               minimum_temperature: null
               target_temperature: 23.71832
               connected: true
+              eta_seconds: -1
 
     Probe:
       type: object
@@ -318,7 +320,6 @@ components:
             Seconds until the target temperature at the current rate. -1 when unknown: not in
             target mode, not rising by at least 0.05 °C per minute, less than 3 minutes of
             readings, target reached, or more than 24 hours away.
-
 
     History:
       type: object

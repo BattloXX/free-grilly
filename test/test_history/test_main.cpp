@@ -150,6 +150,32 @@ void test_eta_ignores_gaps(){
     TEST_ASSERT_NOT_EQUAL(ETA_UNKNOWN, h.eta_seconds(50.0f));
 }
 
+void test_eta_for_probe_unknown_when_not_connected(){
+    feed(60, 20.0f, 1.0f / 6.0f);
+    TEST_ASSERT_EQUAL_INT32(ETA_UNKNOWN, eta_for_probe(h, false, 50.0f, 0.0f, false));
+}
+
+void test_eta_for_probe_unknown_in_range_mode(){
+    feed(60, 20.0f, 1.0f / 6.0f);
+    TEST_ASSERT_EQUAL_INT32(ETA_UNKNOWN, eta_for_probe(h, true, 50.0f, 10.0f, false));
+}
+
+void test_eta_for_probe_unknown_when_target_is_zero(){
+    feed(60, 20.0f, 1.0f / 6.0f);
+    TEST_ASSERT_EQUAL_INT32(ETA_UNKNOWN, eta_for_probe(h, true, 0.0f, 0.0f, false));
+}
+
+void test_eta_for_probe_converts_fahrenheit_target(){
+    feed(60, 20.0f, 1.0f / 6.0f);                      // rising 1 degree C per minute
+    int32_t eta = eta_for_probe(h, true, 122.0f, 0.0f, true);   // 122 F = 50 C
+    TEST_ASSERT_INT_WITHIN(30, 1212, eta);
+}
+
+void test_eta_for_probe_celcius_matches_eta_seconds(){
+    feed(60, 20.0f, 1.0f / 6.0f);
+    TEST_ASSERT_EQUAL_INT32(h.eta_seconds(50.0f), eta_for_probe(h, true, 50.0f, 0.0f, false));
+}
+
 int main(int argc, char** argv){
     UNITY_BEGIN();
     RUN_TEST(test_to_tenths);
@@ -167,5 +193,10 @@ int main(int argc, char** argv){
     RUN_TEST(test_eta_unknown_beyond_24_hours);
     RUN_TEST(test_eta_only_uses_the_last_ten_minutes);
     RUN_TEST(test_eta_ignores_gaps);
+    RUN_TEST(test_eta_for_probe_unknown_when_not_connected);
+    RUN_TEST(test_eta_for_probe_unknown_in_range_mode);
+    RUN_TEST(test_eta_for_probe_unknown_when_target_is_zero);
+    RUN_TEST(test_eta_for_probe_converts_fahrenheit_target);
+    RUN_TEST(test_eta_for_probe_celcius_matches_eta_seconds);
     return UNITY_END();
 }

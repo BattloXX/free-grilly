@@ -2,6 +2,7 @@
 #include <string>
 #include <WiFi.h>
 #include <Update.h>
+#include "esp_timer.h"
 
 #include "Probe.h"
 #include "Buzzer.h"
@@ -264,7 +265,7 @@ void post_api_update(){
 // of 8 probes is several kB. Each probe is copied under the lock and sent without it, so a slow
 // client never holds up the probes task.
 static history::ProbeHistory history_snapshot;  // only used by the webserver task
-static char   history_chunk[512];
+static char   history_chunk[1460];  // one TCP segment, so each chunk goes out in a single packet
 static size_t history_chunk_length = 0;
 
 static void history_flush(){
@@ -303,6 +304,8 @@ static void history_add_tier(const char* name, bool fine, uint32_t now_s){
 }
 
 void get_api_history(){
+    allow_cross_origin_read();
+
     int only_probe = 0;
     if(web::webserver.hasArg("probe")){
         only_probe = web::webserver.arg("probe").toInt();
@@ -312,7 +315,6 @@ void get_api_history(){
         }
     }
 
-    allow_cross_origin_read();
     web::webserver.setContentLength(CONTENT_LENGTH_UNKNOWN);
     web::webserver.send(200, "application/json", "");
     history_chunk_length = 0;
@@ -328,7 +330,8 @@ void get_api_history(){
             SharedLock lock;    // the probes task writes the history
             connected        = probe_by_id(probe_id)->connected;
             history_snapshot = grill::probe_history[probe_id - 1];
-            now_s            = millis() / 1000;
+            // Same clock as record_history(): esp_timer_get_time() doesn't wrap at ~49.7 days like millis() does.
+            now_s            = (uint32_t)(esp_timer_get_time() / 1000000ULL);
         }
         if(!connected){ continue; }
 

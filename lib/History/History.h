@@ -62,4 +62,8 @@ private:
     void add_value(uint32_t now_s, int16_t value);
 };
 
+// Time to target for a probe in target mode (target > 0, minimum <= 0), ETA_UNKNOWN otherwise.
+// target and minimum are in the display unit; fahrenheit converts the target to Celsius first.
+int32_t eta_for_probe(const ProbeHistory& history, bool connected, float target, float minimum, bool fahrenheit);
+
 }

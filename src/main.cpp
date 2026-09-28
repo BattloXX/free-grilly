@@ -22,6 +22,7 @@
 #include "Util.h"
 
 #include "esp_heap_caps.h"
+#include "esp_timer.h"
 
 // ************************************
 // * Config.h initializes variables
@@ -582,7 +583,8 @@ void task_powerbutton(void* pvParameters) {
 void record_history(){
     Probe* probes[] = {&grill::probe_1, &grill::probe_2, &grill::probe_3, &grill::probe_4,
                        &grill::probe_5, &grill::probe_6, &grill::probe_7, &grill::probe_8};
-    uint32_t now_s = millis() / 1000;
+    // esp_timer_get_time() instead of millis(), which wraps at ~49.7 days; must match get_api_history()'s clock.
+    uint32_t now_s = (uint32_t)(esp_timer_get_time() / 1000000ULL);
 
     SharedLock lock;    // the history is read by the webserver and mqtt tasks, temperature_unit can change
     bool fahrenheit = config::temperature_unit == "fahrenheit";
@@ -590,11 +592,8 @@ void record_history(){
     for(int i = 0; i < 8; i++){
         Probe& probe = *probes[i];
         grill::probe_history[i].add(now_s, probe.connected, probe.celcius);
-
-        // Only target mode has something to count down to. The target is in the display unit.
-        bool target_mode = probe.connected && probe.target_temperature > 0 && probe.minimum_temperature <= 0;
-        float target_celcius = fahrenheit ? (probe.target_temperature - 32) / 1.8f : probe.target_temperature;
-        probe.eta_seconds = target_mode ? grill::probe_history[i].eta_seconds(target_celcius) : history::ETA_UNKNOWN;
+        probe.eta_seconds = history::eta_for_probe(grill::probe_history[i], probe.connected,
+                                                     probe.target_temperature, probe.minimum_temperature, fahrenheit);
     }
 }
 
