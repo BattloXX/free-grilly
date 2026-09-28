@@ -1,6 +1,9 @@
 #pragma once
 
 class Preferences;
+class Probe;
+// The probe with this id (1-8), nullptr otherwise
+Probe* probe_by_id(int probe_id);
 
 struct jsonResult
 {
@@ -21,6 +24,9 @@ class JsonUtilities{
 
         void load_json_probes(char *buffer);
         jsonResult save_json_probes(char* jsondata);
+
+        // Clears the temperature history of one probe: {"probe_id": N}
+        jsonResult clear_json_history(char* jsondata);
 
         void load_opengrill_grill(char *buffer);
         jsonResult save_opengrill_grill(char* jsondata);

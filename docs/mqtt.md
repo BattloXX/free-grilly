@@ -21,12 +21,15 @@ The default prefix is `grilly-plus` and the uuid is in the format of a UUIDv4 ge
     - `<prefix>/<uuid>/config/probes`
     - `<prefix>/<uuid>/config/settings`
     - `<prefix>/<uuid>/config/mute`
+    - `<prefix>/<uuid>/config/clear_history`
 
 A full example looks like `grilly-plus/43c62ed2-4dc0-41a5-8f71-16db60155739/grill`.
 
-The `grill` topic is sent every second and includes an `alarm_sounding` field that is `true` while a probe alarm is actively beeping, and each entry in its `probes` array has its own `alarm` field that is `true` for the probe(s) causing the sounding alarm. The `probes` and `settings` topic is only used if you change your probe or your grill settings on grilly-plus.
+The `grill` topic is sent every second and includes an `alarm_sounding` field that is `true` while a probe alarm is actively beeping, and each entry in its `probes` array has its own `alarm` field that is `true` for the probe(s) causing the sounding alarm. Each probe in the `grill` and `probes` topics also has `eta_seconds`, the number of seconds until the target temperature at the current rate, or `-1` when unknown. The `probes` and `settings` topic is only used if you change your probe or your grill settings on grilly-plus.
 
 Sending any payload (the content is ignored) to `/config/mute` mutes a sounding alarm, the same as pressing the grill's button.
+
+Sending `{"probe_id": N}` to `/config/clear_history` clears the temperature history of that probe (the graph and time-to-target start over).
 
 When publishing to the `probes` and `settings` topic the messages will have their **retain** flag set to true. That way the latest known settings are always available for whoever subscribes.
 
@@ -34,7 +37,7 @@ Messages on `/config/probes` and `/config/settings` may be partial: only the key
 
 `admin_password` can't be changed over MQTT: a `/config/settings` message that contains it is rejected as a whole.
 
-For the topics that Grilly+ is subscribed to (`/config/probes`, `/config/settings` and `/config/mute`), Grilly+ takes into account that there might be a message with the retain flag set. So after reading the message Grilly+ will also publish a new message with retain set to true and a 0 byte payload to clear the existing message.
+For the topics that Grilly+ is subscribed to (`/config/probes`, `/config/settings`, `/config/mute` and `/config/clear_history`), Grilly+ takes into account that there might be a message with the retain flag set. So after reading the message Grilly+ will also publish a new message with retain set to true and a 0 byte payload to clear the existing message.
 
 
 ## Testing your MQTT connection

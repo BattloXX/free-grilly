@@ -13,6 +13,20 @@
 // Every function uses its own JsonDocument. The api, mqtt and opengrill tasks call these at the same
 // time, a shared document got cleared and filled by one task while another was serializing it.
 
+Probe* probe_by_id(int probe_id){
+    switch (probe_id){
+        case 1: return &grill::probe_1;
+        case 2: return &grill::probe_2;
+        case 3: return &grill::probe_3;
+        case 4: return &grill::probe_4;
+        case 5: return &grill::probe_5;
+        case 6: return &grill::probe_6;
+        case 7: return &grill::probe_7;
+        case 8: return &grill::probe_8;
+        default: return nullptr;
+    }
+}
+
 namespace {
 
 // Reads fields from a json object into variables. A key that is missing or null keeps the current
@@ -92,20 +106,6 @@ class FieldReader {
             return false;
         }
 };
-
-Probe* probe_by_id(int probe_id){
-    switch (probe_id){
-        case 1: return &grill::probe_1;
-        case 2: return &grill::probe_2;
-        case 3: return &grill::probe_3;
-        case 4: return &grill::probe_4;
-        case 5: return &grill::probe_5;
-        case 6: return &grill::probe_6;
-        case 7: return &grill::probe_7;
-        case 8: return &grill::probe_8;
-        default: return nullptr;
-    }
-}
 
 // Seconds since the probe was connected, 0 when it isn't. connected_time is set from the same clock
 // in Probe::calculate_temperature.
@@ -576,6 +576,21 @@ jsonResult JsonUtilities::save_json_probes(char* raw_json){
     config::config_helper.save_probes();
 
     return {true, "Ok"};
+}
+
+jsonResult JsonUtilities::clear_json_history(char* jsondata){
+    JsonDocument jsondoc;
+    DeserializationError err = deserializeJson(jsondoc, jsondata);
+    if(err){ return {false, "Could not deserialize json"}; }
+
+    int probe_id = jsondoc["probe_id"] | 0;
+    Probe* probe = probe_by_id(probe_id);
+    if(probe == nullptr){ return {false, "probe_id should be between 1 and 8"}; }
+
+    SharedLock lock;    // the probes task writes the history
+    grill::probe_history[probe_id - 1].clear();
+    probe->eta_seconds = history::ETA_UNKNOWN;
+    return {true, ""};
 }
 
 void JsonUtilities::load_opengrill_grill(char *buffer){
