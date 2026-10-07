@@ -22,6 +22,7 @@ char api_json_buffer[3000];
 void setup_api_routes()
 {
     web::webserver.on("/api/grill", HTTP_GET, get_api_grill);
+    web::webserver.on("/api/events", HTTP_GET, get_api_events);
     web::webserver.on("/api/info", HTTP_GET, get_api_info);
 
     web::webserver.on("/api/probes", HTTP_GET, get_api_probes);

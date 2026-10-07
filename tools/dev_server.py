@@ -10,6 +10,7 @@ import http.server
 import json
 import os
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -45,6 +46,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         body = self.rfile.read(length) if length else None
         if GRILL is None:
             import mock_api
+            if self.command == "GET" and self.path.split("?")[0] == "/api/events":
+                return self.events(mock_api)
             status, data = mock_api.handle(self.command, self.path.split("?")[0], body, self.headers, urllib.parse.urlsplit(self.path).query)
             return self.reply(status, "application/json", json.dumps(data).encode("utf-8"))
 
@@ -59,6 +62,20 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.reply(error.code, error.headers.get("Content-Type", "application/json"), error.read())
         except OSError as error:
             self.reply(502, "application/json", json.dumps({"error": "Grill unreachable: %s" % error}).encode("utf-8"))
+
+    def events(self, mock_api):
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Connection", "keep-alive")
+        self.end_headers()
+        try:
+            for _ in range(5):
+                self.wfile.write(mock_api.sse_frame(mock_api.grill()).encode("utf-8"))
+                self.wfile.flush()
+                time.sleep(1)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
 
     def reply(self, status, content_type, data):
         self.send_response(status)

@@ -777,6 +777,7 @@ void JsonUtilities::load_json_info(char* buffer){
     jsondoc["probe_count"]      = 8;
 
     // Features added on top of Free-Grilly. A client checks for a name before using the feature.
+    // "events" is advertised once /api/events is confirmed on hardware.
     JsonArray capabilities = jsondoc["capabilities"].to<JsonArray>();
     for (const char* capability : {"history", "eta", "clear_history", "alarm_mute", "alarm_probes",
                                    "alarm_probe_mute", "calibration_offset", "diagnostics", "ota_upload",

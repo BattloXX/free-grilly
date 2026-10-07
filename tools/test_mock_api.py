@@ -30,6 +30,14 @@ class InfoTest(unittest.TestCase):
         self.assertEqual("c-1a2b3c4d-0001", data["cook_session"]["id"])
 
 
+class EventsTest(unittest.TestCase):
+    def test_sse_frame_contains_one_json_data_message(self):
+        frame = mock_api.sse_frame({"uptime_seconds": 1})
+        self.assertTrue(frame.startswith("data: "))
+        self.assertTrue(frame.endswith("\n\n"))
+        self.assertEqual({"uptime_seconds": 1}, json.loads(frame[6:-2]))
+
+
 class AlarmMuteTest(unittest.TestCase):
     def setUp(self):
         mock_api.ALARM_SOUNDING = True

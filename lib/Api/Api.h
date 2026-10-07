@@ -2,6 +2,8 @@
 
 
 void get_api_grill();
+void get_api_events();
+void loop_api_events();
 void get_api_info();
 
 void get_api_probes();

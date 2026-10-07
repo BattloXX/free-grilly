@@ -236,6 +236,7 @@ void task_webserver(void* pvParameters) {
 
     while (true){
         web::webserver.handleClient();
+        loop_api_events();
         delay(1);
     }
 }
