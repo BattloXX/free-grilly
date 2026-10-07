@@ -52,6 +52,43 @@ void setup() {
     Serial.begin(115200); // Initialize serial communication at 115200 bits per second
     // delay(5000);          // Give serial monitor time to catch up
 
+    // This must happen before the boot-gate beep. It is harmless on a normal boot and releases
+    // the buzzer hold left by a previous deep sleep before any LEDC code tries to use it.
+    power.release_holds();
+
+    //* Power button pin is set early so an accidental deep-sleep wake can return to sleep before
+    //* touching NVS, WiFi, or the display.
+    pinMode(gpio::power_button, INPUT);
+
+    esp_reset_reason_t reset_reason = esp_reset_reason();
+    Serial.printf("Reset reason: %d\n", reset_reason);
+
+    // A stable short code for the About page and the api, kept in a global since esp_reset_reason()
+    // can only be read once, right after boot.
+    switch (reset_reason){
+        case ESP_RST_POWERON:    grill::last_reset_reason = "power_on";            break;
+        case ESP_RST_SW:         grill::last_reset_reason = "software";            break;
+        case ESP_RST_PANIC:      grill::last_reset_reason = "panic";               break;
+        case ESP_RST_INT_WDT:    grill::last_reset_reason = "interrupt_watchdog";  break;
+        case ESP_RST_TASK_WDT:   grill::last_reset_reason = "task_watchdog";       break;
+        case ESP_RST_WDT:        grill::last_reset_reason = "watchdog";            break;
+        case ESP_RST_DEEPSLEEP:  grill::last_reset_reason = "deep_sleep_wake";     break;
+        case ESP_RST_BROWNOUT:   grill::last_reset_reason = "brownout";            break;
+        case ESP_RST_EXT:        grill::last_reset_reason = "external";            break;
+        default:                 grill::last_reset_reason = "unknown";             break;
+    }
+
+    if (reset_reason == ESP_RST_POWERON) {
+        grill::sleep_wakes = 0;
+        grill::sleep_wakes_ignored = 0;
+    } else if (reset_reason == ESP_RST_DEEPSLEEP) {
+        grill::sleep_wakes++;
+        if (digitalRead(gpio::power_button) != LOW) {
+            grill::sleep_wakes_ignored++;
+            power.shutdown();
+        }
+    }
+
     // Guards the Strings shared between tasks, must exist before the first task starts
     create_shared_lock();
     grill::cook_session.set_salt(esp_random());
@@ -71,9 +108,6 @@ void setup() {
     // * Power button bootup
     // ***********************************
 
-    //* Power button pin is set here so that we can use it to check for boot
-    pinMode(gpio::power_button, INPUT);
-
     unsigned long millis_pressed        = 0;
     unsigned long millis_button_start   = 0;
 
@@ -83,24 +117,6 @@ void setup() {
     // device (ota update, factory reset, crash, watchdog) boots straight back up, otherwise a crash
     // during a cook would silently switch the thermometer off. A brownout still needs the button
     // so an empty battery can't get stuck in a reboot loop.
-    esp_reset_reason_t reset_reason = esp_reset_reason();
-    Serial.printf("Reset reason: %d\n", reset_reason);
-
-    // A stable short code for the About page and the api, kept in a global since esp_reset_reason()
-    // can only be read once, right after boot.
-    switch (reset_reason){
-        case ESP_RST_POWERON:    grill::last_reset_reason = "power_on";            break;
-        case ESP_RST_SW:         grill::last_reset_reason = "software";            break;
-        case ESP_RST_PANIC:      grill::last_reset_reason = "panic";               break;
-        case ESP_RST_INT_WDT:    grill::last_reset_reason = "interrupt_watchdog";  break;
-        case ESP_RST_TASK_WDT:   grill::last_reset_reason = "task_watchdog";       break;
-        case ESP_RST_WDT:        grill::last_reset_reason = "watchdog";            break;
-        case ESP_RST_DEEPSLEEP:  grill::last_reset_reason = "deep_sleep_wake";     break;
-        case ESP_RST_BROWNOUT:   grill::last_reset_reason = "brownout";            break;
-        case ESP_RST_EXT:        grill::last_reset_reason = "external";            break;
-        default:                 grill::last_reset_reason = "unknown";             break;
-    }
-
     // Loaded once at boot and kept until the next deliberate off, so it stays available for the
     // whole run even though it was written just before the previous off/restart.
     strlcpy(grill::last_off_reason, config::settings_storage.getString("off_reason", "").c_str(), sizeof(grill::last_off_reason));
@@ -134,6 +150,9 @@ void setup() {
         }
 
         if(millis_pressed < bootup_press_time){
+            if (reset_reason == ESP_RST_DEEPSLEEP) {
+                grill::sleep_wakes_ignored++;
+            }
             power.shutdown();
         }
     }
@@ -694,7 +713,9 @@ void task_screen(void* pvParameters) {
     display.init();
 
     for (;;) {
-        display.display_update();
+        if (!grill::shutting_down.load()) {
+            display.display_update();
+        }
         // Serial.println("screen update");
 
         delay(1000);

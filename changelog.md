@@ -1,5 +1,11 @@
 # Changelog (firmware only)
 
+## Unreleased
+
+### Fixes
+- Deep sleep now powers down the LCD controller, holds the buzzer low, and no longer holds every digital pad, reducing switched-off battery drain
+- Releasing the power button before arming the level-triggered wake source avoids immediate wake loops; diagnostics now show total and ignored deep-sleep wakes
+
 ## 2026-10-07
 Compatibility with the Free-Grilly Android app (BattloXX build). Install it from Settings > Firmware updates with the `-ota.bin` file.
 

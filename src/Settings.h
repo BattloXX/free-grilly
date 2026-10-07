@@ -193,6 +193,9 @@ namespace grill{
 
     const char* last_reset_reason       = "unknown";
     char last_off_reason[16]            = "";
+    std::atomic<bool> shutting_down{false};
+    RTC_DATA_ATTR uint32_t sleep_wakes = 0;
+    RTC_DATA_ATTR uint32_t sleep_wakes_ignored = 0;
 
     // ***********************************
     // * Buzzer
