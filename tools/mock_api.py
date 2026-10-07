@@ -1,6 +1,7 @@
 """Mock grill API for tools/dev_server.py --mock: realistic data for development and screenshots."""
 import base64
 import json
+import re
 import time
 import urllib.parse
 
@@ -103,6 +104,7 @@ def grill():
         "hostname": "grilly-plus-%s.local" % SETTINGS["uuid"].replace("-", "")[:8].lower(),
         "battery_percentage": 82, "battery_charging": True, "battery_millivolts": 3950,
         "last_reset_reason": "software", "last_off_reason": "update",
+        "uptime_seconds": int(time.time() - START), "cook_session": {"id": "c-1a2b3c4d-0001"},
         "wifi_connected": True, "wifi_ssid": SETTINGS["wifi_ssid"],
         "wifi_ip": "192.168.1.50", "wifi_signal": -58,
         "local_ap_ssid": SETTINGS["local_ap_ssid"], "local_ap_ip": SETTINGS["local_ap_ip"], "temperature_unit": SETTINGS["temperature_unit"],
@@ -179,6 +181,17 @@ def handle(method, path, body, headers=None, query=""):
         ALARM_SOUNDING = False
         ALARM_PROBE_ID = None
         return 200, {"success": True}
+    probe_alarm_mute = re.fullmatch(r"/api/probes/(\d+)/alarm/mute", path)
+    if method == "POST" and probe_alarm_mute:
+        if not (headers or {}).get("Content-Type", "").startswith("application/json"):
+            return 415, {"error": "Content-Type should be application/json"}
+        probe_id = int(probe_alarm_mute.group(1))
+        if not 1 <= probe_id <= 8:
+            return 400, {"error": "probe should be 1 to 8"}
+        if ALARM_PROBE_ID == probe_id:
+            ALARM_PROBE_ID = None
+            ALARM_SOUNDING = False
+        return 200, {"success": True}
     if method == "POST" and path == "/api/_mock/alarm":
         # Mock-only helper, not part of the real firmware API: lets the web app be tested without hardware.
         ALARM_SOUNDING = True
@@ -221,13 +234,16 @@ def handle(method, path, body, headers=None, query=""):
                 SETTINGS[key] = value
         return 200, SETTINGS
     if method == "GET" and path == "/api/info":
+        capabilities = ["history", "eta", "clear_history", "alarm_mute", "alarm_probes",
+                        "alarm_probe_mute", "calibration_offset", "diagnostics", "ota_upload", "cook_session"]
+        if ADMIN_PASSWORD:
+            capabilities.append("ota_auth")
         return 200, {
             "firmware": "grilly-plus", "firmware_version": SETTINGS["firmware_version"], "api_version": 1,
             "unique_id": SETTINGS["uuid"],
             "hostname": "grilly-plus-%s.local" % SETTINGS["uuid"].replace("-", "")[:8].lower(),
             "probe_count": 8,
-            "capabilities": ["history", "eta", "clear_history", "alarm_mute", "alarm_probes",
-                             "calibration_offset", "diagnostics", "ota_upload"],
+            "capabilities": capabilities,
         }
     if method == "GET" and path == "/api/wifiscan":
         time.sleep(1.5)

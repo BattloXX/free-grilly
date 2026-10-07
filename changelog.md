@@ -1,5 +1,12 @@
 # Changelog (firmware only)
 
+## Unreleased
+
+### API and MQTT
+- `GET /api/grill` now reports `uptime_seconds` and a boot-unique `cook_session.id` once history data starts
+- `GET /api/info` advertises `cook_session`, `alarm_probe_mute`, and conditional `ota_auth` capabilities
+- `POST /api/probes/N/alarm/mute` mutes one sounding probe without stopping other probe alarms
+
 ## 2026-09-28.2
 Temperature graphs and time to target. Install it from Settings > Firmware updates with the `-ota.bin` file.
 

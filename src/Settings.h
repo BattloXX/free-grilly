@@ -153,6 +153,7 @@ namespace config{
     // ***********************************
 
     bool alarm_mute                     = false;
+    std::atomic<uint8_t> alarm_mute_probes{0};
     int alarm_beep_amount               = 20;
     int alarm_beep_duration_ms          = 800;
     bool cucaracha_enabled              = false;
@@ -218,6 +219,7 @@ namespace grill{
     Probe probe_8 = Probe(8);
 
     history::ProbeHistory probe_history[8];
+    history::CookSession cook_session;
 }
 
 namespace web{

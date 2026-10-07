@@ -2,6 +2,7 @@
 #include <Preferences.h>
 #include <WiFi.h>
 #include <chrono>
+#include "esp_timer.h"
 
 #include "Config.h"
 #include "Grill.h"
@@ -181,6 +182,7 @@ void JsonUtilities::load_json_status(char *buffer){
     jsondoc["battery_millivolts"] = grill::battery_millivolts;
     jsondoc["last_reset_reason"]  = grill::last_reset_reason;
     jsondoc["last_off_reason"]    = grill::last_off_reason;
+    jsondoc["uptime_seconds"]     = (uint32_t)(esp_timer_get_time() / 1000000ULL);
     jsondoc["wifi_connected"]     = grill::wifi_connected;
     jsondoc["wifi_ssid"]          = config::wifi_ssid;
     jsondoc["wifi_ip"]            = grill::wifi_ip;
@@ -189,6 +191,11 @@ void JsonUtilities::load_json_status(char *buffer){
     jsondoc["local_ap_ip"]        = config::local_ap_ip;
     jsondoc["temperature_unit"]   = config::temperature_unit;
     jsondoc["alarm_sounding"]     = grill::alarm_sounding;
+    if(grill::cook_session.active()){
+        char cook_session_id[24];   // "c-" + 8 hex + "-" + up to 5 digits
+        grill::cook_session.format_id(cook_session_id, sizeof(cook_session_id));
+        jsondoc["cook_session"]["id"] = cook_session_id;
+    }
 
     JsonArray probeData = jsondoc["probes"].to<JsonArray>();
 
@@ -772,9 +779,11 @@ void JsonUtilities::load_json_info(char* buffer){
     // Features added on top of Free-Grilly. A client checks for a name before using the feature.
     JsonArray capabilities = jsondoc["capabilities"].to<JsonArray>();
     for (const char* capability : {"history", "eta", "clear_history", "alarm_mute", "alarm_probes",
-                                   "calibration_offset", "diagnostics", "ota_upload"}) {
+                                   "alarm_probe_mute", "calibration_offset", "diagnostics", "ota_upload",
+                                   "cook_session"}) {
         capabilities.add(capability);
     }
+    if(!config::admin_password.isEmpty()){ capabilities.add("ota_auth"); }
 
     serializeJson(jsondoc, buffer, config::json_buffer_size);
 }

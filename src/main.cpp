@@ -9,6 +9,7 @@
 #include "Buzzer.h"
 #include "GrillConfig.h"
 #include "History.h"
+#include "CookSession.h"
 #include "JsonUtilities.h"
 #include "Mqtt.h"
 #include "Network.h"
@@ -23,6 +24,7 @@
 #include "Util.h"
 
 #include "esp_heap_caps.h"
+#include "esp_system.h"
 #include "esp_timer.h"
 
 // ************************************
@@ -52,6 +54,7 @@ void setup() {
 
     // Guards the Strings shared between tasks, must exist before the first task starts
     create_shared_lock();
+    grill::cook_session.set_salt(esp_random());
 
     // ***********************************
     // * Load nvram settings and init
@@ -439,6 +442,16 @@ void task_alarm(void* pvParameters) {
             alarm_beep_todo = config::alarm_beep_amount;
         }
 
+        uint8_t muted_probes = config::alarm_mute_probes.exchange(0);
+        if(muted_probes){
+            grill::alarm_probes &= ~muted_probes;
+            // With every sounding probe muted, stop the beep cycle like the global mute does.
+            if(grill::alarm_probes == 0){
+                alarm_beep_todo = 0;
+                warn_before = false;
+            }
+        }
+
         //* Mute alarms if needed
         if(config::alarm_mute == true){
             // When we need to mute we remove all needed alarms and wait
@@ -589,6 +602,8 @@ void record_history(){
 
     SharedLock lock;    // the history is read by the webserver and mqtt tasks, temperature_unit can change
     bool fahrenheit = config::temperature_unit == "fahrenheit";
+    bool any_history_before = false;
+    for(int i = 0; i < 8; i++){ any_history_before |= !grill::probe_history[i].empty(); }
 
     for(int i = 0; i < 8; i++){
         Probe& probe = *probes[i];
@@ -596,6 +611,9 @@ void record_history(){
         probe.eta_seconds = history::eta_for_probe(grill::probe_history[i], probe.connected,
                                                      probe.target_temperature, probe.minimum_temperature, fahrenheit);
     }
+    bool any_history_after = false;
+    for(int i = 0; i < 8; i++){ any_history_after |= !grill::probe_history[i].empty(); }
+    grill::cook_session.update(any_history_before, any_history_after);
 }
 
 void task_probes(void* pvParameters) {
