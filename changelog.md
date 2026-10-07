@@ -1,13 +1,16 @@
 # Changelog (firmware only)
 
-## Unreleased
-
-### New
-- Optional power-saving mode reduces Wi-Fi, CPU and probe polling power use while retaining setup hotspot recovery after a Wi-Fi disconnect
+## 2026-10-07.2
+Battery fixes. Install it from Settings > Firmware updates with the `-ota.bin` file.
 
 ### Fixes
-- Deep sleep now powers down the LCD controller, holds the buzzer low, and no longer holds every digital pad, reducing switched-off battery drain
-- Releasing the power button before arming the level-triggered wake source avoids immediate wake loops; diagnostics now show total and ignored deep-sleep wakes
+- Less battery drain while switched off: the LCD controller is put to sleep, the buzzer pin is held low, and the display pins are no longer frozen in their active state during deep sleep
+- Switching off waits until the power button is released, so the grill can't wake straight back up
+- A wake from deep sleep without the button pressed goes straight back to sleep; About and `/api/grill` show how often that happened (`sleep_wakes`, `sleep_wakes_ignored`)
+
+### New
+- Power saving (Settings > Power, off by default, also in the Android app): Wi-Fi sleeps between beacons, the CPU runs at 80 MHz, probes are read every second, and the setup hotspot turns off once the home network is connected (it comes back after 60 s without it)
+- MQTT and Opengrill wake up less often when no server is set
 
 ## 2026-10-07
 Compatibility with the Free-Grilly Android app (BattloXX build). Install it from Settings > Firmware updates with the `-ota.bin` file.
