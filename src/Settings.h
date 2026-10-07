@@ -165,6 +165,7 @@ namespace config{
     int screen_timeout_minutes          = 0;
     int backlight_timeout_minutes       = 0;
     int backlight_brightness            = 5;
+    bool power_saving                   = false;
 }
 
 namespace grill{

@@ -117,6 +117,7 @@ Open the grill's address in a browser on your phone or computer. The dashboard s
 - You can also view this [online](https://editor-next.swagger.io/?url=https://raw.githubusercontent.com/bardesss/grilly-plus/refs/heads/master/docs/openapi.yaml)
 - `GET /api/info` tells an app or integration which firmware runs and which Grilly+ features (`capabilities`) it has.
 - `GET /api/history` returns the temperature history of the connected probes, `POST /api/history/clear` clears one.
+- Settings include an optional power-saving mode: Wi-Fi sleeps between beacons and the setup hotspot switches off while connected to home Wi-Fi.
 
 ## Installation
 

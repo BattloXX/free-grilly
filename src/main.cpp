@@ -99,6 +99,7 @@ void setup() {
     config::settings_storage.begin("free-grilly", false); // Kept from Free-Grilly so settings survive an upgrade
     config::config_helper.load_settings();
     config::config_helper.load_probes();
+    set_power_saving_cpu_frequency();
 
     // Computed once here, right after the uuid is loaded from NVS and before WiFi starts, so both
     // WiFi.setHostname() and the mDNS responder can use it.
@@ -209,8 +210,7 @@ void setup() {
     WiFi.disconnect(true);  // Remove stale settings
     delay(100);             // Delay for stability
     WiFi.mode(WIFI_AP_STA); // AP + STATION
-    WiFi.setSleep(false);   // Disable wifi powersaving for a more
-                            // stable connection and lower latency
+    WiFi.setSleep(config::power_saving);
     WiFi.setHostname(grill::hostname); // Must precede WiFi.begin() (in connect_to_wifi) to take effect
 
     start_local_ap();
@@ -256,7 +256,12 @@ void task_webserver(void* pvParameters) {
     while (true){
         web::webserver.handleClient();
         loop_api_events();
-        delay(1);
+        static unsigned long last_power_saving_check = 0;
+        if(millis() - last_power_saving_check >= 1000){
+            last_power_saving_check = millis();
+            loop_power_saving();
+        }
+        delay(2);
     }
 }
 
@@ -340,7 +345,7 @@ void task_opengrill(void* pvParameters) {
             }
         }
 
-        delay(50);
+        delay(opengrill_server == "" ? 1000 : 50);
     }
 }
 
@@ -423,7 +428,7 @@ void task_mqtt(void* pvParameters) {
             }
         }
 
-        delay(50);
+        delay(mqtt_broker == "" ? 1000 : 50);
     }
 }
 
@@ -666,7 +671,7 @@ void task_probes(void* pvParameters) {
             if((long)(millis() - next_history_ms) >= 0){ next_history_ms = millis() + history::FINE_INTERVAL_S * 1000; }
         }
 
-        delay(500);
+        delay(config::power_saving ? 1000 : 500);
     }
 }
 

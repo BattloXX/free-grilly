@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### New
+- Optional power-saving mode reduces Wi-Fi, CPU and probe polling power use while retaining setup hotspot recovery after a Wi-Fi disconnect
+
 ### Fixes
 - Deep sleep now powers down the LCD controller, holds the buzzer low, and no longer holds every digital pad, reducing switched-off battery drain
 - Releasing the power button before arming the level-triggered wake source avoids immediate wake loops; diagnostics now show total and ignored deep-sleep wakes

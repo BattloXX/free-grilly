@@ -22,6 +22,10 @@ const Settings = (() => {
       { key: "backlight_timeout_minutes", label: "Backlight off after", type: "stepper", min: 0, max: 10000,
         suffix: (v) => (v === 0 ? "never" : "min") },
     ] },
+    { id: "power", title: "Power", fields: [
+      { key: "power_saving", label: "Power saving", type: "toggle",
+        hint: "Longer battery life: Wi-Fi sleeps between beacons and the setup hotspot turns off once connected. The device may respond a little slower." },
+    ] },
     { id: "mqtt", title: "MQTT", fields: [
       { key: "mqtt_broker", label: "Broker", type: "text", placeholder: "Not used when empty" },
       { key: "mqtt_port", label: "Port", type: "number", min: 1, max: 65535 },
@@ -41,8 +45,8 @@ const Settings = (() => {
   let loadError;
 
   // Card ids per desktop column, and the single-column order on phones
-  const LAYOUT = [["grill", "alarms", "display", "updates"], ["network", "mqtt", "opengrill"]];
-  const PHONE_ORDER = ["grill", "alarms", "display", "network", "mqtt", "opengrill", "updates"];
+  const LAYOUT = [["grill", "alarms", "display", "power", "updates"], ["network", "mqtt", "opengrill"]];
+  const PHONE_ORDER = ["grill", "alarms", "display", "power", "network", "mqtt", "opengrill", "updates"];
 
   // card: { id, build(), fill(settings) }, id as used in LAYOUT
   function addCard(card) { extraCards.push(card); }
@@ -141,7 +145,14 @@ const Settings = (() => {
       input.setAttribute("role", "switch");
       input.addEventListener("change", () => send(input.checked));
       controls.push({ set: (s) => { if (document.activeElement !== input) input.checked = !!s[field.key]; }, saver });
-      return row(field, input);
+      const wrapper = row(field, input);
+      if (field.hint) {
+        const hint = document.createElement("p");
+        hint.className = "hint";
+        hint.textContent = field.hint;
+        wrapper.append(hint);
+      }
+      return wrapper;
     }
 
     if (field.type === "stepper") {
