@@ -1,9 +1,10 @@
 # Changelog (firmware only)
 
-## Unreleased
+## 2026-10-07
+Compatibility with the Free-Grilly Android app (BattloXX build). Install it from Settings > Firmware updates with the `-ota.bin` file.
 
 ### API and MQTT
-- `GET /api/events` streams the same status as `/api/grill` as Server-Sent Events once per second
+- `GET /api/events` streams the same status as `/api/grill` as Server-Sent Events once per second (one client; not advertised as the `events` capability yet)
 - `GET /api/grill` now reports `uptime_seconds` and a boot-unique `cook_session.id` once history data starts
 - `GET /api/info` advertises `cook_session`, `alarm_probe_mute`, and conditional `ota_auth` capabilities
 - `POST /api/probes/N/alarm/mute` mutes one sounding probe without stopping other probe alarms
