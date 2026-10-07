@@ -11,7 +11,7 @@
 #define BAT_I2C                            0x55   // I2C address
 #define BAT_DEVICE_ID	                   0x0421 // Default device ID
 #define BAT_FLAGS   	                   0x06   // Flags
-#define BAT_FLAG_CHARGE  	               (1<<0) // Charge flag bit definition
+#define BAT_FLAG_DSG     	               (1<<0) // Flags() bit 0 is DSG (discharging); charging = !DSG
 #define BAT_TIMEOUT         		       200    // Timeout that can be used after writing
 
 #define BAT_CONTROL_DEVICE_TYPE		       0x01   // Control code for initialization with the IC
@@ -181,6 +181,11 @@ public:
 	*	@return true on success
 	*/
 	bool startup(void);
+	/**
+	* 	@brief Releases GPIO holds left by deep sleep.
+	* 	@return true
+	*/
+	bool release_holds(void);
 
 private:
 

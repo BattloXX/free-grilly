@@ -19,6 +19,8 @@
     fields.battery.textContent = Format.batteryDiagnostics(status.battery_percentage, status.battery_charging, status.battery_millivolts);
     fields.restart.textContent = Format.resetReasonText(status.last_reset_reason);
     fields.off.textContent = Format.offReasonText(status.last_off_reason);
+    fields["sleep-wakes"].textContent = status.sleep_wakes;
+    fields["sleep-wakes-ignored"].textContent = status.sleep_wakes_ignored;
   }
 
   function mount(el) {
@@ -39,6 +41,8 @@
       '    <dt>Battery</dt><dd data-about="battery"></dd>' +
       '    <dt>Last restart</dt><dd data-about="restart"></dd>' +
       '    <dt>Last switched off</dt><dd data-about="off"></dd>' +
+      '    <dt>Deep-sleep wakes</dt><dd data-about="sleep-wakes"></dd>' +
+      '    <dt>Ignored wakes</dt><dd data-about="sleep-wakes-ignored"></dd>' +
       '  </dl>' +
       '  <p><a class="button" href="https://github.com/bardesss/grilly-plus" target="_blank" rel="noopener">Grilly+ on GitHub</a></p>' +
       '  <p class="hint">Grilly+ is a fork of <a href="https://github.com/epiecs/free-grilly" target="_blank" rel="noopener">Free-Grilly</a> ' +

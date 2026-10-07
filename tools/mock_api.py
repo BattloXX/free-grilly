@@ -103,7 +103,7 @@ def grill():
         "name": SETTINGS["name"], "unique_id": SETTINGS["uuid"], "firmware_version": SETTINGS["firmware_version"],
         "hostname": "grilly-plus-%s.local" % SETTINGS["uuid"].replace("-", "")[:8].lower(),
         "battery_percentage": 82, "battery_charging": True, "battery_millivolts": 3950,
-        "last_reset_reason": "software", "last_off_reason": "update",
+        "last_reset_reason": "software", "last_off_reason": "update", "sleep_wakes": 3, "sleep_wakes_ignored": 1,
         "uptime_seconds": int(time.time() - START), "cook_session": {"id": "c-1a2b3c4d-0001"},
         "wifi_connected": True, "wifi_ssid": SETTINGS["wifi_ssid"],
         "wifi_ip": "192.168.1.50", "wifi_signal": -58,

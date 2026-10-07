@@ -3,6 +3,7 @@
 #include <Wire.h>
 
 #include "Config.h"
+#include "Display.h"
 #include "Grill.h"
 
 // Initializes class variables
@@ -84,8 +85,8 @@ float bat::temp(temp_unit type) {
 
 bool bat::chargeFlag(void) {
 	uint16_t flagState = flags();
-	bool is_charging = flagState & BAT_FLAG_CHARGE;
-	return !is_charging;
+	bool is_discharging = flagState & BAT_FLAG_DSG;
+	return !is_discharging;
 }
 
 // Keeps the last good values when the fuel gauge doesn't answer or answers nonsense. A failed read
@@ -104,7 +105,7 @@ bool bat::read_battery(void) {
 
 	_readFailures = 0;
 	grill::battery_percentage  = percentage;
-	grill::battery_charging 	= !(flagState & BAT_FLAG_CHARGE);
+	grill::battery_charging 	= !(flagState & BAT_FLAG_DSG);
 
 	// Best-effort: a failed voltage read must not block the percentage/flags update above, so it
 	// gets its own check instead of joining the condition that returns false.
@@ -235,7 +236,16 @@ bool pwr::setScreenBrightness(int brightness) {
 }
 
 bool pwr::shutdown(void) {
-	esp_sleep_enable_ext0_wakeup(GPIO_NUM_35,0);
+	grill::shutting_down.store(true);
+
+	// EXT0 is level-triggered. Do not arm it until the button is released or it wakes immediately.
+	unsigned long wait_started = millis();
+	while (digitalRead(gpio::power_button) == LOW && millis() - wait_started < 5000) {
+		delay(10);
+	}
+
+	// This also works when the boot gate shuts down before task_screen has called display.init().
+	display.sleep();
 
 	// The backlight pwm stops in deep sleep and the pin floats, which can leave the backlight on.
 	// Drive it low instead and hold it, and the power rails, at their off level while asleep.
@@ -249,25 +259,37 @@ bool pwr::shutdown(void) {
 	setPowerRail(DISABLE,gpio::power_probes);
 	setPowerRail(DISABLE,gpio::power_adc_circuit);
 
+	ledcDetachPin(gpio::buzzer);
+	pinMode(gpio::buzzer, OUTPUT);
+	digitalWrite(gpio::buzzer, LOW);
+
 	gpio_hold_en((gpio_num_t)gpio::power_screen_backlight);
 	gpio_hold_en((gpio_num_t)gpio::power_probes);
 	gpio_hold_en((gpio_num_t)gpio::power_adc_circuit);
-	gpio_deep_sleep_hold_en();
+	gpio_hold_en((gpio_num_t)gpio::buzzer);
+	// Do not enable the global deep-sleep hold: it freezes all non-RTC pads, including the LCD and
+	// I2C pins. The RTC power, backlight and buzzer pins above are held individually instead.
+
+	esp_sleep_enable_ext0_wakeup(GPIO_NUM_35,0);
 
 	esp_deep_sleep_start();
 	return true;
 }
 
 bool pwr::startup(void) {
-	// Release the pins held during deep sleep before they are configured again
-	gpio_deep_sleep_hold_dis();
-	gpio_hold_dis((gpio_num_t)gpio::power_screen_backlight);
-	gpio_hold_dis((gpio_num_t)gpio::power_probes);
-	gpio_hold_dis((gpio_num_t)gpio::power_adc_circuit);
+	release_holds();
 
 	init();
 	setPowerRail(ENABLE,gpio::power_adc_circuit);
 	setPowerRail(ENABLE,gpio::power_probes);
+	return true;
+}
+
+bool pwr::release_holds(void) {
+	gpio_hold_dis((gpio_num_t)gpio::power_screen_backlight);
+	gpio_hold_dis((gpio_num_t)gpio::power_probes);
+	gpio_hold_dis((gpio_num_t)gpio::power_adc_circuit);
+	gpio_hold_dis((gpio_num_t)gpio::buzzer);
 	return true;
 }
 

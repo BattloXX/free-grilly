@@ -108,6 +108,16 @@ components:
             - update
             - low_battery
             - ""
+        sleep_wakes:
+          type: integer
+          readOnly: true
+          example: 3
+          description: Deep-sleep wakes since the last power-on reset.
+        sleep_wakes_ignored:
+          type: integer
+          readOnly: true
+          example: 1
+          description: Deep-sleep wakes that returned to sleep because the device was not turned on.
         uptime_seconds:
           type: integer
           readOnly: true

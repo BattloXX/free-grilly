@@ -7,6 +7,7 @@
 #include <string>
 #include <iomanip>
 #include <sstream>
+#include <atomic>
 
 #include "Display.h"
 #include "Grill.h"
@@ -18,7 +19,8 @@
 
 U8G2_ST7565_64128N_F_4W_SW_SPI screen(U8G2_R2, /* clock=*/ 18, /* data=*/ 23, /* cs=*/ 5, /* dc=*/ 17, /* reset=*/ 16); 
 bool is_critical_battery_flash          = false;
-bool is_display_updating                = false;
+std::atomic<bool> is_display_updating{false};
+bool screen_initialized                 = false;
 int notification_offset                 = 0;
 int current_screen_page                 = 0;
 String current_active_name              = "";
@@ -49,7 +51,9 @@ static const unsigned char temp_high[]          U8X8_PROGMEM = {0x44,0x04,0x88,0
 disp::disp() {}
 
 bool disp::init(void){
+    if (grill::shutting_down.load()) {return true;}
     screen.begin();
+    screen_initialized = true;
     screen.setContrast(22);
     screen.setFontMode(1);
     screen.setBitmapMode(1);
@@ -58,6 +62,7 @@ bool disp::init(void){
 }
 
 bool disp::switch_page(void){
+    if (grill::shutting_down.load()) {return true;}
     std::pair<int, std::vector<int>> connectedProbeInfo = get_connected_probes();
         
 
@@ -71,6 +76,7 @@ bool disp::switch_page(void){
 }
 
 bool disp::show_settings_page(void){
+    if (grill::shutting_down.load()) {return true;}
     current_screen_page = 10;
     screen_background_pwr(ENABLE);
     screen_pwr(ENABLE);
@@ -78,12 +84,31 @@ bool disp::show_settings_page(void){
 }
 
 bool disp::wake(void){
+    if (grill::shutting_down.load()) {return true;}
     screen_background_pwr(ENABLE);
     screen_pwr(ENABLE);
     return true;
 }
 
+bool disp::sleep(void){
+    // Let an update that had already passed its shutdown check finish before this task changes
+    // the controller state and Power starts holding pins.
+    while (is_display_updating.load()) {
+        delay(1);
+    }
+    // shutdown() can be called by the boot gate before the screen task initialized the controller.
+    // After a deep sleep wake the controller is still asleep from the previous shutdown, so leave it.
+    if (!screen_initialized) {
+        if (esp_reset_reason() == ESP_RST_DEEPSLEEP) {return true;}
+        screen.begin();
+        screen_initialized = true;
+    }
+    screen.setPowerSave(1);
+    return true;
+}
+
 bool disp::screen_background_pwr(status_type type){
+    if (grill::shutting_down.load()) {return true;}
     switch (type) {
 	case ENABLE:
         power.setScreenBrightness(config::backlight_brightness);
@@ -97,6 +122,7 @@ bool disp::screen_background_pwr(status_type type){
 }
 
 bool disp::screen_pwr(status_type type){
+    if (grill::shutting_down.load()) {return true;}
     switch (type) {
 	case ENABLE:
         screen.setPowerSave(ENABLE);
@@ -111,15 +137,15 @@ bool disp::screen_pwr(status_type type){
 
 
 bool disp::display_update(void) {
-    if(is_display_updating) {return true;}  //* prevent mulitple simultanious display updates 
-    is_display_updating = true;
+    if (grill::shutting_down.load()) {return true;}
+    if(is_display_updating.exchange(true)) {return true;}  //* prevent mulitple simultanious display updates
     blink_phase = !blink_phase;
     if (config::backlight_timeout_minutes > 0 and millis_backlight_timeout + (config::backlight_timeout_minutes * 60000) < millis()) {
         screen_background_pwr(DISABLE);
     }
     if (config::screen_timeout_minutes > 0 and millis_screen_timeout + (config::screen_timeout_minutes * 60000) < millis()) {
         screen_pwr(DISABLE);
-        is_display_updating = false;
+        is_display_updating.store(false);
         return true; 
     }
 
@@ -204,7 +230,7 @@ bool disp::display_update(void) {
     }
 
     screen.sendBuffer();
-    is_display_updating = false;
+    is_display_updating.store(false);
 	return true; 
 }
 

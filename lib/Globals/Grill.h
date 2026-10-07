@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include <atomic>
 #include "History.h"
 #include "CookSession.h"
 
@@ -41,6 +42,11 @@ namespace grill {
     // Reason the device was last switched off deliberately, loaded from NVS at boot and kept until
     // the next deliberate off. "" = unknown. See GrillConfig::save_off_reason.
     extern char last_off_reason[16];
+    // Set before preparing the pins for deep sleep, so other tasks leave the display alone.
+    extern std::atomic<bool> shutting_down;
+    // Retained across deep sleep; reset on a real power-on reset.
+    extern uint32_t sleep_wakes;
+    extern uint32_t sleep_wakes_ignored;
 
     extern Probe probe_1;
     extern Probe probe_2;

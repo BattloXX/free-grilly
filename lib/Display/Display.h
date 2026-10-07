@@ -37,6 +37,11 @@ public:
     *	@return true
     */
     bool wake(void);
+    /**
+    * 	@brief Puts the LCD controller into power-save mode before deep sleep
+    * 	@return true
+    */
+    bool sleep(void);
 
 
 
