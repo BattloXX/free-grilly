@@ -1,5 +1,8 @@
 #pragma once
 
+#include <atomic>
+#include <stdint.h>
+
 // Forward declarations
 class GrillConfig;
 class Opengrill;
@@ -77,6 +80,8 @@ namespace config{
 
     // Alarm beeps
     extern bool alarm_mute;
+    // Requested per-probe mutes, atomically handed from the webserver task to task_alarm.
+    extern std::atomic<uint8_t> alarm_mute_probes;
     extern int alarm_beep_amount;
     extern int alarm_beep_duration_ms;
     extern bool cucaracha_enabled;

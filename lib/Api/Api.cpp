@@ -2,6 +2,7 @@
 #include <string>
 #include <WiFi.h>
 #include <Update.h>
+#include <uri/UriBraces.h>
 #include "esp_timer.h"
 
 #include "Probe.h"
@@ -35,6 +36,8 @@ void setup_api_routes()
 
     web::webserver.on("/api/alarm/mute", HTTP_POST, post_api_alarm_mute);
     web::webserver.on("/api/alarm/mute", HTTP_OPTIONS, cors_api_alarm_mute);
+    web::webserver.on(UriBraces("/api/probes/{}/alarm/mute"), HTTP_POST, post_api_probe_alarm_mute);
+    web::webserver.on(UriBraces("/api/probes/{}/alarm/mute"), HTTP_OPTIONS, cors_api_probe_alarm_mute);
 
     web::webserver.on("/api/history", HTTP_GET, get_api_history);
     web::webserver.on("/api/history/clear", HTTP_POST, post_api_history_clear);
@@ -152,6 +155,28 @@ void post_api_alarm_mute(){
 
 // Preflight for a cross-origin write. Answered without CORS headers, so the browser blocks it.
 void cors_api_alarm_mute(){
+    web::webserver.send(204);
+    return;
+}
+
+void post_api_probe_alarm_mute(){
+    if(!is_json_request()) { return; }
+
+    String path_probe = web::webserver.pathArg(0);
+    bool valid_probe = !path_probe.isEmpty();
+    for(size_t i = 0; valid_probe && i < path_probe.length(); i++){
+        valid_probe = path_probe[i] >= '0' && path_probe[i] <= '9';
+    }
+    int probe_id = valid_probe ? path_probe.toInt() : 0;
+    if(probe_id < 1 || probe_id > 8){
+        web::webserver.send(400, "application/json", "{\"error\": \"probe should be 1 to 8\"}");
+        return;
+    }
+    config::alarm_mute_probes.fetch_or(1 << (probe_id - 1));
+    web::webserver.send(200, "application/json", "{\"success\": true}");
+}
+
+void cors_api_probe_alarm_mute(){
     web::webserver.send(204);
     return;
 }

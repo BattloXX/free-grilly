@@ -16,6 +16,8 @@ void get_api_wifiscan();
 
 void post_api_alarm_mute();
 void cors_api_alarm_mute();
+void post_api_probe_alarm_mute();
+void cors_api_probe_alarm_mute();
 
 void get_api_history();
 void post_api_history_clear();

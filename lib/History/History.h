@@ -25,6 +25,7 @@ public:
     // Adds one sample. Call every FINE_INTERVAL_S seconds with the seconds since boot.
     void add(uint32_t now_s, bool connected, float celcius);
     void clear();
+    bool empty() const { return fine_count_ == 0 && coarse_count_ == 0; }
 
     int      fine_count() const        { return fine_count_; }
     int16_t  fine_at(int i) const;     // i = 0 is the oldest

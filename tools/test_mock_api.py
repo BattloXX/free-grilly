@@ -11,6 +11,45 @@ class InfoTest(unittest.TestCase):
         self.assertEqual("grilly-plus", data["firmware"])
         self.assertEqual(1, data["api_version"])
         self.assertIn("history", data["capabilities"])
+        self.assertIn("cook_session", data["capabilities"])
+        self.assertIn("alarm_probe_mute", data["capabilities"])
+        self.assertNotIn("ota_auth", data["capabilities"])
+
+    def test_ota_auth_capability_needs_an_admin_password(self):
+        previous = mock_api.ADMIN_PASSWORD
+        mock_api.ADMIN_PASSWORD = "secret"
+        try:
+            _, data = mock_api.handle("GET", "/api/info", None)
+            self.assertIn("ota_auth", data["capabilities"])
+        finally:
+            mock_api.ADMIN_PASSWORD = previous
+
+    def test_grill_has_uptime_and_cook_session(self):
+        _, data = mock_api.handle("GET", "/api/grill", None)
+        self.assertIsInstance(data["uptime_seconds"], int)
+        self.assertEqual("c-1a2b3c4d-0001", data["cook_session"]["id"])
+
+
+class AlarmMuteTest(unittest.TestCase):
+    def setUp(self):
+        mock_api.ALARM_SOUNDING = True
+        mock_api.ALARM_PROBE_ID = 2
+
+    def tearDown(self):
+        mock_api.ALARM_SOUNDING = False
+        mock_api.ALARM_PROBE_ID = None
+
+    def test_mutes_one_sounding_probe(self):
+        status, data = mock_api.handle("POST", "/api/probes/2/alarm/mute", b"{}", {"Content-Type": "application/json"})
+        self.assertEqual(200, status)
+        self.assertEqual({"success": True}, data)
+        self.assertFalse(mock_api.ALARM_SOUNDING)
+        self.assertIsNone(mock_api.ALARM_PROBE_ID)
+
+    def test_probe_mute_rejects_bad_probe(self):
+        status, data = mock_api.handle("POST", "/api/probes/9/alarm/mute", b"{}", {"Content-Type": "application/json"})
+        self.assertEqual(400, status)
+        self.assertEqual({"error": "probe should be 1 to 8"}, data)
 
 
 class HistoryTest(unittest.TestCase):

@@ -108,6 +108,20 @@ components:
             - update
             - low_battery
             - ""
+        uptime_seconds:
+          type: integer
+          readOnly: true
+          example: 18720
+          description: Seconds since this firmware booted.
+        cook_session:
+          type: object
+          readOnly: true
+          description: Present after the first history sample of a cook, until reboot.
+          properties:
+            id:
+              type: string
+              example: c-1a2b3c4d-0001
+              description: Boot-unique cook identifier, incremented when all histories become empty and data returns.
         wifi_connected:
           type: boolean
           example: true
@@ -707,12 +721,45 @@ paths:
                     type: array
                     items:
                       type: string
-                      enum: [history, eta, clear_history, alarm_mute, alarm_probes, calibration_offset, diagnostics, ota_upload]
+                      enum: [history, eta, clear_history, alarm_mute, alarm_probes, alarm_probe_mute, calibration_offset, diagnostics, ota_upload, cook_session, ota_auth]
                     description: >
                       history = GET /history; eta = eta_seconds per probe; clear_history = POST /history/clear and
                       MQTT config/clear_history; alarm_mute = POST /alarm/mute and MQTT config/mute; alarm_probes =
                       alarm per probe in /grill; calibration_offset = offset_celcius per probe; diagnostics = reset,
-                      off reason and battery millivolts in /grill; ota_upload = POST /update.
+                      off reason and battery millivolts in /grill; ota_upload = POST /update; cook_session = cook id in
+                      /grill; ota_auth = POST /update requires admin auth (only present when admin_password is set);
+                      alarm_probe_mute = POST /probes/{probe}/alarm/mute.
+
+  /probes/{probe}/alarm/mute:
+    post:
+      tags:
+        - grill
+      summary: Mute one sounding probe alarm
+      description: >
+        Mutes a currently sounding probe alarm without stopping alarms from other probes. Harmless, so no
+        admin auth is needed.
+      parameters:
+        - name: probe
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 8
+      requestBody:
+        required: true
+        description: Empty body
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Probe is not 1 through 8
+        '415':
+          description: Content-Type was not application/json
 
   /wifiscan:
     get:
