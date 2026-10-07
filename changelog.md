@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### API and MQTT
+- `GET /api/events` streams the same status as `/api/grill` as Server-Sent Events once per second
 - `GET /api/grill` now reports `uptime_seconds` and a boot-unique `cook_session.id` once history data starts
 - `GET /api/info` advertises `cook_session`, `alarm_probe_mute`, and conditional `ota_auth` capabilities
 - `POST /api/probes/N/alarm/mute` mutes one sounding probe without stopping other probe alarms

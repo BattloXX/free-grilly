@@ -582,6 +582,25 @@ paths:
               schema:
                 $ref: '#/components/schemas/Grill'
 
+  /events:
+    get:
+      tags:
+        - grill
+      summary: Live grill status events
+      description: >
+        Streams Server-Sent Events containing the same JSON object as GET /grill. One data frame is
+        sent every second. Only one client is supported; a newer connection replaces the older one.
+      responses:
+        '200':
+          description: SSE stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: Each `data:` frame contains a Grill JSON object.
+                example: |-
+                  data: {"name":"Grilly+","uptime_seconds":1,"probes":[]}
+
   /probes:
     get:
       tags:

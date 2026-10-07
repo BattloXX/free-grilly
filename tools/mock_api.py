@@ -120,6 +120,11 @@ def grill():
     }
 
 
+def sse_frame(obj):
+    """Format one JSON object as an SSE data frame."""
+    return "data: " + json.dumps(obj, separators=(",", ":")) + "\n\n"
+
+
 def probes():
     return [dict(p, temperature=temperature(p), eta_seconds=eta_seconds(p)) for p in PROBES]
 
