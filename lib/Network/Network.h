@@ -1,6 +1,8 @@
 #include <WiFi.h>
 
 void start_local_ap();
+void loop_power_saving();
+void set_power_saving_cpu_frequency();
 
 // Starts the mDNS responder under grill::hostname and advertises _http._tcp and _grilly-plus._tcp
 // on port 80. Safe to call once WiFi.mode() has set up the AP/STA interfaces; the underlying

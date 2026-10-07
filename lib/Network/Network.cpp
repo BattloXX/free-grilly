@@ -3,6 +3,7 @@
 #include <WiFi.h>
 #include <ESPmDNS.h>
 #include <Preferences.h>
+#include <esp32-hal-cpu.h>
 
 #include "Config.h"
 #include "Grill.h"
@@ -13,6 +14,60 @@ constexpr int CONNECT_TIMEOUT_SECONDS = 10;
 // used for internet connectivity checks
 const char *domainName = "www.google.com";
 IPAddress resolved_ip;
+bool local_ap_running = false;
+
+void set_power_saving_cpu_frequency()
+{
+    bool power_saving;
+    {
+        SharedLock lock;
+        power_saving = config::power_saving;
+    }
+
+    uint32_t frequency = power_saving ? 80 : 240;
+    if(getCpuFrequencyMhz() != frequency){
+        // HSPI is clocked from the 80 MHz APB clock at both CPU speeds; the display uses software SPI.
+        setCpuFrequencyMhz(frequency);
+    }
+}
+
+void loop_power_saving()
+{
+    static bool was_wifi_connected = false;
+    static unsigned long wifi_disconnected_at = 0;
+    static int sleep_enabled = -1;
+
+    bool power_saving;
+    {
+        SharedLock lock;
+        power_saving = config::power_saving;
+    }
+
+    set_power_saving_cpu_frequency();
+    if(sleep_enabled != power_saving){
+        WiFi.setSleep(power_saving);
+        sleep_enabled = power_saving;
+    }
+
+    bool wifi_connected = grill::wifi_connected;
+    if(wifi_connected){
+        wifi_disconnected_at = 0;
+        if(power_saving && local_ap_running){
+            Serial.println("Power-saving: stopping local wifi ap");
+            WiFi.softAPdisconnect(true);
+            local_ap_running = false;
+        }
+    } else if(was_wifi_connected){
+        wifi_disconnected_at = millis();
+    }
+
+    if(!local_ap_running && (!power_saving || (wifi_disconnected_at > 0 && millis() - wifi_disconnected_at >= 60000))){
+        Serial.println("Power-saving: starting local wifi ap");
+        start_local_ap();
+        local_ap_running = true;
+    }
+    was_wifi_connected = wifi_connected;
+}
 
 void start_local_ap()
 {
@@ -39,6 +94,7 @@ void start_local_ap()
 
     Serial.printf("Local SSID: %s \n", local_ap_ssid.c_str());
     Serial.printf("Local IP: %s \n", WiFi.softAPIP().toString().c_str());
+    local_ap_running = true;
 }
 
 void start_mdns()

@@ -316,6 +316,7 @@ void JsonUtilities::load_json_settings(char* buffer){
     jsondoc["screen_timeout_minutes"]    = config::screen_timeout_minutes;
     jsondoc["backlight_timeout_minutes"] = config::backlight_timeout_minutes;
     jsondoc["backlight_brightness"]      = config::backlight_brightness;
+    jsondoc["power_saving"]              = config::power_saving;
 
     jsondoc["opengrill_server"]          = config::opengrill_server;
 
@@ -381,6 +382,7 @@ jsonResult JsonUtilities::save_json_settings(char* raw_json, bool admin_authoriz
             fields.number("screen_timeout_minutes",     config::screen_timeout_minutes, 0, 10000);
             fields.number("backlight_timeout_minutes",  config::backlight_timeout_minutes, 0, 10000);
             fields.number("backlight_brightness",       config::backlight_brightness, 0, 5);
+            fields.boolean("power_saving",              config::power_saving);
 
             fields.text("opengrill_server",             config::opengrill_server);
 
@@ -783,7 +785,7 @@ void JsonUtilities::load_json_info(char* buffer){
     JsonArray capabilities = jsondoc["capabilities"].to<JsonArray>();
     for (const char* capability : {"history", "eta", "clear_history", "alarm_mute", "alarm_probes",
                                    "alarm_probe_mute", "calibration_offset", "diagnostics", "ota_upload",
-                                   "cook_session"}) {
+                                   "cook_session", "power_saving"}) {
         capabilities.add(capability);
     }
     if(!config::admin_password.isEmpty()){ capabilities.add("ota_auth"); }

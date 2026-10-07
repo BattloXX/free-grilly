@@ -483,6 +483,10 @@ components:
           default: 5
           minimum: 0
           maximum: 5
+        power_saving:
+          type: boolean
+          description: Saves battery by using Wi-Fi modem sleep, stopping the setup hotspot while connected, and polling probes less often.
+          default: false
         opengrill_server:
           type: string
           example: "opengrill.test.com"
@@ -750,14 +754,14 @@ paths:
                     type: array
                     items:
                       type: string
-                      enum: [history, eta, clear_history, alarm_mute, alarm_probes, alarm_probe_mute, calibration_offset, diagnostics, ota_upload, cook_session, ota_auth]
+                      enum: [history, eta, clear_history, alarm_mute, alarm_probes, alarm_probe_mute, calibration_offset, diagnostics, ota_upload, cook_session, power_saving, ota_auth]
                     description: >
                       history = GET /history; eta = eta_seconds per probe; clear_history = POST /history/clear and
                       MQTT config/clear_history; alarm_mute = POST /alarm/mute and MQTT config/mute; alarm_probes =
                       alarm per probe in /grill; calibration_offset = offset_celcius per probe; diagnostics = reset,
                       off reason and battery millivolts in /grill; ota_upload = POST /update; cook_session = cook id in
-                      /grill; ota_auth = POST /update requires admin auth (only present when admin_password is set);
-                      alarm_probe_mute = POST /probes/{probe}/alarm/mute.
+                      /grill; power_saving = power-saving setting; ota_auth = POST /update requires admin auth (only
+                      present when admin_password is set); alarm_probe_mute = POST /probes/{probe}/alarm/mute.
 
   /probes/{probe}/alarm/mute:
     post:

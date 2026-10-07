@@ -18,6 +18,7 @@ SETTINGS = {
     "temperature_unit": "celcius", "beep_enabled": True, "beep_volume": 4, "beep_degrees_before": 5,
     "beep_outside_target": True, "beep_on_ready": True, "cucaracha_enabled": False,
     "screen_timeout_minutes": 0, "backlight_timeout_minutes": 5, "backlight_brightness": 4,
+    "power_saving": False,
     "opengrill_server": "", "mqtt_broker": "192.168.1.10", "mqtt_port": 1883, "mqtt_topic": "grilly-plus",
     "mqtt_user": "grill", "mqtt_password_set": True,
     "wifi_ssid": "HomeNet", "wifi_ip": "0.0.0.0", "wifi_subnet": "0.0.0.0", "wifi_gateway": "0.0.0.0",
@@ -222,6 +223,8 @@ def handle(method, path, body, headers=None, query=""):
         return 200, SETTINGS
     if method == "POST" and path == "/api/settings":
         update = json.loads(body or b"{}")
+        if "power_saving" in update and not isinstance(update["power_saving"], bool):
+            return 400, {"error": "power_saving should be true or false"}
         password = update.get("local_ap_password")
         if password and len(password) < 8:
             return 400, {"error": "local_ap_password should be empty or at least 8 characters"}
@@ -240,7 +243,7 @@ def handle(method, path, body, headers=None, query=""):
         return 200, SETTINGS
     if method == "GET" and path == "/api/info":
         capabilities = ["history", "eta", "clear_history", "alarm_mute", "alarm_probes",
-                        "alarm_probe_mute", "calibration_offset", "diagnostics", "ota_upload", "cook_session"]
+                        "alarm_probe_mute", "calibration_offset", "diagnostics", "ota_upload", "cook_session", "power_saving"]
         if ADMIN_PASSWORD:
             capabilities.append("ota_auth")
         return 200, {

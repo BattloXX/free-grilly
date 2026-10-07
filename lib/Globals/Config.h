@@ -90,4 +90,5 @@ namespace config{
     extern int screen_timeout_minutes;
     extern int backlight_timeout_minutes;
     extern int backlight_brightness;
+    extern bool power_saving;
 }

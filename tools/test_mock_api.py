@@ -13,6 +13,7 @@ class InfoTest(unittest.TestCase):
         self.assertIn("history", data["capabilities"])
         self.assertIn("cook_session", data["capabilities"])
         self.assertIn("alarm_probe_mute", data["capabilities"])
+        self.assertIn("power_saving", data["capabilities"])
         self.assertNotIn("ota_auth", data["capabilities"])
 
     def test_ota_auth_capability_needs_an_admin_password(self):
@@ -36,6 +37,18 @@ class EventsTest(unittest.TestCase):
         self.assertTrue(frame.startswith("data: "))
         self.assertTrue(frame.endswith("\n\n"))
         self.assertEqual({"uptime_seconds": 1}, json.loads(frame[6:-2]))
+
+
+class SettingsTest(unittest.TestCase):
+    def test_power_saving_can_be_updated(self):
+        status, data = mock_api.handle("POST", "/api/settings", b'{"power_saving": true}')
+        self.assertEqual(200, status)
+        self.assertTrue(data["power_saving"])
+
+    def test_power_saving_must_be_a_boolean(self):
+        status, data = mock_api.handle("POST", "/api/settings", b'{"power_saving": "true"}')
+        self.assertEqual(400, status)
+        self.assertEqual("power_saving should be true or false", data["error"])
 
 
 class AlarmMuteTest(unittest.TestCase):
