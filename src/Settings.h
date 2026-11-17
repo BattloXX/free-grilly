@@ -24,6 +24,12 @@ namespace gpio{
     int battery_i2c_sda        = 21;
     int battery_i2c_scl        = 22;
 
+    const int lcd_cs           =  5;
+    const int lcd_rst          = 16;
+    const int lcd_dc           = 17;
+    const int lcd_sck          = 18;
+    const int lcd_mosi         = 23;
+
     int hspi_probes_sclk 	   = 14;
     int hspi_probes_cs 	       = 15;
     int hspi_probes_miso 	   = 12;

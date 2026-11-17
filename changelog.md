@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Fixes
+- Defined LCD idle levels, released I2C/UART, and isolated probe pins reduce leakage while switched off
 - Accidental wakes while switched off are filtered by a deep-sleep wake stub before the bootloader or app runs, keeping the power rails held off and counting the ignored wakes in the existing diagnostics
 
 ### New

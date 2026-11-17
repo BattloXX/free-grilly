@@ -17,7 +17,7 @@
 #include "SharedLock.h"
 
 
-U8G2_ST7565_64128N_F_4W_SW_SPI screen(U8G2_R2, /* clock=*/ 18, /* data=*/ 23, /* cs=*/ 5, /* dc=*/ 17, /* reset=*/ 16); 
+U8G2_ST7565_64128N_F_4W_SW_SPI screen(U8G2_R2, /* clock=*/ gpio::lcd_sck, /* data=*/ gpio::lcd_mosi, /* cs=*/ gpio::lcd_cs, /* dc=*/ gpio::lcd_dc, /* reset=*/ gpio::lcd_rst);
 bool is_critical_battery_flash          = false;
 std::atomic<bool> is_display_updating{false};
 bool screen_initialized                 = false;

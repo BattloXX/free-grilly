@@ -11,6 +11,12 @@ namespace gpio{
     extern int battery_i2c_sda;
     extern int battery_i2c_scl;
 
+    extern const int lcd_cs;
+    extern const int lcd_rst;
+    extern const int lcd_dc;
+    extern const int lcd_sck;
+    extern const int lcd_mosi;
+
     extern int hspi_probes_sclk;
     extern int hspi_probes_cs;
     extern int hspi_probes_miso;
