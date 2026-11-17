@@ -30,6 +30,14 @@ class InfoTest(unittest.TestCase):
         self.assertIsInstance(data["uptime_seconds"], int)
         self.assertEqual("c-1a2b3c4d-0001", data["cook_session"]["id"])
 
+    def test_grill_has_off_drain_diagnostics(self):
+        _, data = mock_api.handle("GET", "/api/grill", None)
+        self.assertEqual(3200, data["off_drain_ua"])
+        self.assertEqual(18.5, data["off_hours"])
+        self.assertEqual(59, data["off_capacity_drop_mah"])
+        self.assertEqual(1, data["off_wakes_ignored"])
+        self.assertEqual(1541, data["battery_remaining_mah"])
+
 
 class EventsTest(unittest.TestCase):
     def test_sse_frame_contains_one_json_data_message(self):

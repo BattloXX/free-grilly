@@ -1,6 +1,9 @@
 #include <Arduino.h>
 #include <Power.h>
 #include <Wire.h>
+#include <Preferences.h>
+#include <sys/time.h>
+#include "OffDrain.h"
 
 #include "Config.h"
 #include "Display.h"
@@ -89,13 +92,18 @@ bool bat::chargeFlag(void) {
 	return !is_discharging;
 }
 
-// Keeps the last good values when the fuel gauge doesn't answer or answers nonsense. A failed read
-// used to show up as 65535%, which also hid a low battery.
+bool bat::remaining_capacity(uint16_t& mah) {
+	return readWord(BAT_REMAINING_CAPACITY, mah);
+}
+
+// Keeps the last good percentage/voltage when the fuel gauge doesn't answer or answers nonsense.
+// Remaining capacity is invalidated on failure so a deliberate off cannot snapshot a stale reading.
 bool bat::read_battery(void) {
 	uint16_t percentage = 0;
 	uint16_t flagState  = 0;
 
 	if (!readWord(BAT_SOC_FILTERED, percentage) || !readWord(BAT_FLAGS, flagState) || percentage > 100) {
+		grill::battery_remaining_mah.store(-1);
 		_readFailures++;
 		if (_readFailures == 1 || _readFailures % 60 == 0) {
 			Serial.printf("Battery: read failed (%u in a row), keeping %d%%\n", _readFailures, grill::battery_percentage);
@@ -113,6 +121,9 @@ bool bat::read_battery(void) {
 	if (readWord(BAT_VOLTAGE, millivolts)) {
 		grill::battery_millivolts = millivolts;
 	}
+
+	uint16_t mah = 0;
+	grill::battery_remaining_mah.store(remaining_capacity(mah) ? mah : -1);
 
 	return true;
 }
@@ -233,6 +244,44 @@ bool pwr::setScreenBrightness(int brightness) {
 
 	ledcWrite(gpio::pwm_screen_channel , brightness);
 	return true;
+}
+
+namespace {
+    constexpr uint32_t OFF_DRAIN_MAGIC = 0x4F444E31;
+}
+
+void pwr::record_off_drain() {
+    grill::off_drain_magic = 0;
+    const int mah = grill::battery_remaining_mah.load();
+    timeval now;
+    if (mah < 0 || gettimeofday(&now, nullptr) != 0) {
+        return;
+    }
+    grill::capacity_off_mah = static_cast<uint16_t>(mah);
+    grill::time_off = now.tv_sec;
+    grill::sleep_wakes_ignored_at_off = grill::sleep_wakes_ignored;
+    grill::off_drain_magic = OFF_DRAIN_MAGIC;
+}
+
+// Called only by the battery task after a fresh, successful read on an accepted deep-sleep wake.
+void pwr::evaluate_off_drain() {
+    if (grill::off_drain_magic != OFF_DRAIN_MAGIC) {
+        return;
+    }
+    timeval now{};
+    const bool time_ok = gettimeofday(&now, nullptr) == 0;
+    const auto result = OffDrain::compute(grill::capacity_off_mah,
+        static_cast<uint16_t>(grill::battery_remaining_mah.load()),
+        time_ok ? int64_t(now.tv_sec) - grill::time_off : -1, grill::battery_charging);
+    grill::off_drain_magic = 0;
+    grill::off_drain_ua = result.valid ? result.drain_ua : -1;
+    grill::off_seconds = result.off_seconds;
+    grill::off_capacity_drop_mah = result.capacity_drop_mah;
+    grill::off_wakes_ignored = grill::sleep_wakes_ignored - grill::sleep_wakes_ignored_at_off;
+    config::settings_storage.putInt("od_ua", grill::off_drain_ua);
+    config::settings_storage.putUInt("od_s", grill::off_seconds);
+    config::settings_storage.putInt("od_mah", grill::off_capacity_drop_mah);
+    config::settings_storage.putUInt("od_wk", grill::off_wakes_ignored);
 }
 
 bool pwr::shutdown(void) {

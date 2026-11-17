@@ -1,5 +1,11 @@
 # Changelog (firmware only)
 
+## Unreleased
+
+### New
+- About shows estimated battery drain while switched off and ignored wakes during that time, measured by the fuel gauge after at least one hour off; the last result survives restarts and firmware updates
+- `/api/grill` reports `off_drain_ua`, `off_hours`, `off_capacity_drop_mah`, `off_wakes_ignored`, and `battery_remaining_mah`
+
 ## 2026-10-07.2
 Battery fixes. Install it from Settings > Firmware updates with the `-ota.bin` file.
 

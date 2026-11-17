@@ -79,6 +79,7 @@ void setup() {
     }
 
     if (reset_reason == ESP_RST_POWERON) {
+        grill::off_drain_magic = 0;
         grill::sleep_wakes = 0;
         grill::sleep_wakes_ignored = 0;
     } else if (reset_reason == ESP_RST_DEEPSLEEP) {
@@ -121,6 +122,10 @@ void setup() {
     // Loaded once at boot and kept until the next deliberate off, so it stays available for the
     // whole run even though it was written just before the previous off/restart.
     strlcpy(grill::last_off_reason, config::settings_storage.getString("off_reason", "").c_str(), sizeof(grill::last_off_reason));
+    grill::off_drain_ua = config::settings_storage.getInt("od_ua", -1);
+    grill::off_seconds = config::settings_storage.getUInt("od_s", 0);
+    grill::off_capacity_drop_mah = config::settings_storage.getInt("od_mah", 0);
+    grill::off_wakes_ignored = config::settings_storage.getUInt("od_wk", 0);
 
     bool require_button_press = true;
     switch (reset_reason){
@@ -602,6 +607,7 @@ void task_powerbutton(void* pvParameters) {
             else if (millis_pressed < long_press_time) {
                 Serial.println("Button pressed 3-10 seconds");
                 config::config_helper.save_off_reason("button");
+                power.record_off_drain();
                 power.shutdown();
             }
             else if (millis_pressed > long_press_time) {
@@ -688,15 +694,21 @@ void task_battery(void* pvParameters) {
     }
     power.startup();
 
+    bool evaluate_off_drain = esp_reset_reason() == ESP_RST_DEEPSLEEP;
     LowBattery low_battery;
     for (;;) {
         bool read_ok = battery.read_battery();
+        if (evaluate_off_drain && read_ok && grill::battery_remaining_mah.load() > 0) {
+            power.evaluate_off_drain();
+            evaluate_off_drain = false;
+        }
 
         // Switch off cleanly before an empty battery causes brownouts and reboot loops
         if (low_battery.update(read_ok, grill::battery_percentage, grill::battery_millivolts, grill::battery_charging)) {
             Serial.printf("Battery empty (%d%%, %d mV), switching off\n", grill::battery_percentage, grill::battery_millivolts);
             grill::buzzer.beep(3, 300);
             config::config_helper.save_off_reason("low_battery");
+            power.record_off_drain();
             power.shutdown();
         }
 

@@ -118,6 +118,34 @@ components:
           readOnly: true
           example: 1
           description: Deep-sleep wakes that returned to sleep because the device was not turned on.
+        off_drain_ua:
+          type: integer
+          readOnly: true
+          example: 3200
+          description: >-
+            Estimated average current while switched off, in microamps. -1 when unknown or invalid
+            (less than one hour off, over 400 days, charging now, or capacity increased while off).
+            Evaluated on an accepted deep-sleep wake and persisted across restarts and updates.
+        off_hours:
+          type: number
+          readOnly: true
+          example: 18.5
+          description: Last measured off duration in hours, rounded to one decimal, even if drain is invalid.
+        off_capacity_drop_mah:
+          type: integer
+          readOnly: true
+          example: 59
+          description: Remaining-capacity decrease during the last off interval in mAh; negative if capacity increased.
+        off_wakes_ignored:
+          type: integer
+          readOnly: true
+          example: 1
+          description: Ignored deep-sleep wakes during the last measured off interval.
+        battery_remaining_mah:
+          type: integer
+          readOnly: true
+          example: 1541
+          description: Latest fuel-gauge RemainingCapacity in mAh; -1 when the read is unavailable.
         uptime_seconds:
           type: integer
           readOnly: true

@@ -16,6 +16,7 @@
 
 #define BAT_CONTROL_DEVICE_TYPE		       0x01   // Control code for initialization with the IC
 #define BAT_VOLTAGE         		       0x04   // Voltage (V) 
+#define BAT_REMAINING_CAPACITY             0x0C   // Remaining capacity (mAh)
 #define BAT_CURRENT_AVG         	       0x10   // Average current (A) 
 #define BAT_CURRENT_STBY         	       0x12   // Standby current (A) 
 #define BAT_CURRENT_MAX         	       0x14   // Maximum current (A) 
@@ -59,6 +60,7 @@ public:
 	*	@return true if global variable is set 
 	*/
 	bool read_battery(void);
+	bool remaining_capacity(uint16_t& mah);
 
 private:
 	// ***********************************
@@ -176,6 +178,8 @@ public:
 	*	@return true on success
 	*/
 	bool shutdown(void);
+	void record_off_drain();
+	void evaluate_off_drain();
 	/**
 	*	@brief Disables the power rails and put the device in deep sleep
 	*	@return true on success

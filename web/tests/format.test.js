@@ -90,3 +90,16 @@ test("off reason labels include the low battery switch-off", () => {
   assert.equal(Format.offReasonText("low_battery"), "Battery empty");
   assert.equal(Format.offReasonText("something_new"), "Unknown");
 });
+
+
+test("off drain formats milliamps, microamps, zero and unknown readings", () => {
+  assert.equal(Format.offDrain(3200, 18.5), "3.2 mA over 18.5 h");
+  assert.equal(Format.offDrain(45, 30), "45 µA over 30.0 h");
+  assert.equal(Format.offDrain(0, 1), "0 µA over 1.0 h");
+  assert.equal(Format.offDrain(1000, 24), "1.0 mA over 24.0 h");
+  const unknown = "unknown (need ≥ 1 h off, not charging)";
+  assert.equal(Format.offDrain(-1, 0.5), unknown);
+  assert.equal(Format.offDrain(undefined, undefined), unknown);
+  assert.equal(Format.offDrain(NaN, 24), unknown);
+  assert.equal(Format.offDrain(45, 0.5), unknown);
+});
