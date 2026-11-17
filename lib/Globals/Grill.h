@@ -15,6 +15,8 @@ namespace grill {
     extern bool battery_charging;
     // Cell voltage in millivolts, read alongside the percentage. 0 = unknown (fuel gauge read failed).
     extern int battery_millivolts;
+    // Latest remaining-capacity read, -1 when unavailable. Atomic for the power-button task.
+    extern std::atomic<int> battery_remaining_mah;
 
     // Buzzer
     extern Buzzer buzzer;
@@ -47,6 +49,14 @@ namespace grill {
     // Retained across deep sleep; reset on a real power-on reset.
     extern uint32_t sleep_wakes;
     extern uint32_t sleep_wakes_ignored;
+    extern uint32_t off_drain_magic;
+    extern uint16_t capacity_off_mah;
+    extern int64_t time_off;
+    extern uint32_t sleep_wakes_ignored_at_off;
+    extern int32_t off_drain_ua;
+    extern uint32_t off_seconds;
+    extern int32_t off_capacity_drop_mah;
+    extern uint32_t off_wakes_ignored;
 
     extern Probe probe_1;
     extern Probe probe_2;

@@ -24,6 +24,12 @@ namespace gpio{
     int battery_i2c_sda        = 21;
     int battery_i2c_scl        = 22;
 
+    const int lcd_cs           =  5;
+    const int lcd_rst          = 16;
+    const int lcd_dc           = 17;
+    const int lcd_sck          = 18;
+    const int lcd_mosi         = 23;
+
     int hspi_probes_sclk 	   = 14;
     int hspi_probes_cs 	       = 15;
     int hspi_probes_miso 	   = 12;
@@ -187,6 +193,7 @@ namespace grill{
     int battery_percentage              = 0;
     bool battery_charging               = false;
     int battery_millivolts              = 0;
+    std::atomic<int> battery_remaining_mah{-1};
 
     // ***********************************
     // * Diagnostics
@@ -197,6 +204,14 @@ namespace grill{
     std::atomic<bool> shutting_down{false};
     RTC_DATA_ATTR uint32_t sleep_wakes = 0;
     RTC_DATA_ATTR uint32_t sleep_wakes_ignored = 0;
+    RTC_DATA_ATTR uint32_t off_drain_magic = 0;
+    RTC_DATA_ATTR uint16_t capacity_off_mah = 0;
+    RTC_DATA_ATTR int64_t time_off = 0;
+    RTC_DATA_ATTR uint32_t sleep_wakes_ignored_at_off = 0;
+    int32_t off_drain_ua = -1;
+    uint32_t off_seconds = 0;
+    int32_t off_capacity_drop_mah = 0;
+    uint32_t off_wakes_ignored = 0;
 
     // ***********************************
     // * Buzzer

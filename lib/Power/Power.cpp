@@ -1,6 +1,10 @@
 #include <Arduino.h>
 #include <Power.h>
 #include <Wire.h>
+#include <Preferences.h>
+#include <sys/time.h>
+#include <driver/rtc_io.h>
+#include "OffDrain.h"
 
 #include "Config.h"
 #include "Display.h"
@@ -89,13 +93,20 @@ bool bat::chargeFlag(void) {
 	return !is_discharging;
 }
 
-// Keeps the last good values when the fuel gauge doesn't answer or answers nonsense. A failed read
-// used to show up as 65535%, which also hid a low battery.
+bool bat::remaining_capacity(uint16_t& mah) {
+	return readWord(BAT_REMAINING_CAPACITY, mah);
+}
+
+// Keeps the last good percentage/voltage when the fuel gauge doesn't answer or answers nonsense.
+// Remaining capacity is invalidated on failure so a deliberate off cannot snapshot a stale reading.
 bool bat::read_battery(void) {
+	if (grill::shutting_down.load()) {return false;}
+
 	uint16_t percentage = 0;
 	uint16_t flagState  = 0;
 
 	if (!readWord(BAT_SOC_FILTERED, percentage) || !readWord(BAT_FLAGS, flagState) || percentage > 100) {
+		grill::battery_remaining_mah.store(-1);
 		_readFailures++;
 		if (_readFailures == 1 || _readFailures % 60 == 0) {
 			Serial.printf("Battery: read failed (%u in a row), keeping %d%%\n", _readFailures, grill::battery_percentage);
@@ -113,6 +124,9 @@ bool bat::read_battery(void) {
 	if (readWord(BAT_VOLTAGE, millivolts)) {
 		grill::battery_millivolts = millivolts;
 	}
+
+	uint16_t mah = 0;
+	grill::battery_remaining_mah.store(remaining_capacity(mah) ? mah : -1);
 
 	return true;
 }
@@ -235,6 +249,44 @@ bool pwr::setScreenBrightness(int brightness) {
 	return true;
 }
 
+namespace {
+    constexpr uint32_t OFF_DRAIN_MAGIC = 0x4F444E31;
+}
+
+void pwr::record_off_drain() {
+    grill::off_drain_magic = 0;
+    const int mah = grill::battery_remaining_mah.load();
+    timeval now;
+    if (mah < 0 || gettimeofday(&now, nullptr) != 0) {
+        return;
+    }
+    grill::capacity_off_mah = static_cast<uint16_t>(mah);
+    grill::time_off = now.tv_sec;
+    grill::sleep_wakes_ignored_at_off = grill::sleep_wakes_ignored;
+    grill::off_drain_magic = OFF_DRAIN_MAGIC;
+}
+
+// Called only by the battery task after a fresh, successful read on an accepted deep-sleep wake.
+void pwr::evaluate_off_drain() {
+    if (grill::off_drain_magic != OFF_DRAIN_MAGIC) {
+        return;
+    }
+    timeval now{};
+    const bool time_ok = gettimeofday(&now, nullptr) == 0;
+    const auto result = OffDrain::compute(grill::capacity_off_mah,
+        static_cast<uint16_t>(grill::battery_remaining_mah.load()),
+        time_ok ? int64_t(now.tv_sec) - grill::time_off : -1, grill::battery_charging);
+    grill::off_drain_magic = 0;
+    grill::off_drain_ua = result.valid ? result.drain_ua : -1;
+    grill::off_seconds = result.off_seconds;
+    grill::off_capacity_drop_mah = result.capacity_drop_mah;
+    grill::off_wakes_ignored = grill::sleep_wakes_ignored - grill::sleep_wakes_ignored_at_off;
+    config::settings_storage.putInt("od_ua", grill::off_drain_ua);
+    config::settings_storage.putUInt("od_s", grill::off_seconds);
+    config::settings_storage.putInt("od_mah", grill::off_capacity_drop_mah);
+    config::settings_storage.putUInt("od_wk", grill::off_wakes_ignored);
+}
+
 bool pwr::shutdown(void) {
 	grill::shutting_down.store(true);
 
@@ -246,6 +298,27 @@ bool pwr::shutdown(void) {
 
 	// This also works when the boot gate shuts down before task_screen has called display.init().
 	display.sleep();
+
+	// Let a battery read already in progress finish before releasing I2C to its external pull-ups.
+	delay(30);
+	Wire.end();
+	pinMode(gpio::battery_i2c_sda, INPUT);
+	pinMode(gpio::battery_i2c_scl, INPUT);
+
+	Serial.flush();
+	Serial.end();
+	pinMode(1, INPUT);
+	pinMode(3, INPUT);
+
+	digitalWrite(gpio::lcd_cs, HIGH);
+	digitalWrite(gpio::lcd_rst, HIGH);
+	digitalWrite(gpio::lcd_dc, LOW);
+	digitalWrite(gpio::lcd_sck, LOW);
+	digitalWrite(gpio::lcd_mosi, LOW);
+	for (int pin : {gpio::lcd_cs, gpio::lcd_rst, gpio::lcd_dc, gpio::lcd_sck, gpio::lcd_mosi}) {
+		pinMode(pin, OUTPUT);
+		gpio_hold_en((gpio_num_t)pin);
+	}
 
 	// The backlight pwm stops in deep sleep and the pin floats, which can leave the backlight on.
 	// Drive it low instead and hold it, and the power rails, at their off level while asleep.
@@ -267,8 +340,14 @@ bool pwr::shutdown(void) {
 	gpio_hold_en((gpio_num_t)gpio::power_probes);
 	gpio_hold_en((gpio_num_t)gpio::power_adc_circuit);
 	gpio_hold_en((gpio_num_t)gpio::buzzer);
-	// Do not enable the global deep-sleep hold: it freezes all non-RTC pads, including the LCD and
-	// I2C pins. The RTC power, backlight and buzzer pins above are held individually instead.
+	// Unlike before #18, pads now have deliberate idle levels before the global deep-sleep hold:
+	// LCD inputs are stable and I2C/UART pads are inputs, rather than freezing active levels.
+	gpio_deep_sleep_hold_en();
+
+	for (int pin : {gpio::hspi_probes_miso, gpio::hspi_probes_sclk, gpio::hspi_probes_cs,
+		gpio::mux_selector_b, gpio::mux_selector_c, gpio::mux_selector_a}) {
+		rtc_gpio_isolate((gpio_num_t)pin);
+	}
 
 	esp_sleep_enable_ext0_wakeup(GPIO_NUM_35,0);
 
@@ -286,6 +365,15 @@ bool pwr::startup(void) {
 }
 
 bool pwr::release_holds(void) {
+	gpio_deep_sleep_hold_dis();
+	for (int pin : {gpio::lcd_cs, gpio::lcd_rst, gpio::lcd_dc, gpio::lcd_sck, gpio::lcd_mosi}) {
+		gpio_hold_dis((gpio_num_t)pin);
+	}
+	for (int pin : {gpio::hspi_probes_miso, gpio::hspi_probes_sclk, gpio::hspi_probes_cs,
+		gpio::mux_selector_b, gpio::mux_selector_c, gpio::mux_selector_a}) {
+		rtc_gpio_hold_dis((gpio_num_t)pin);
+		rtc_gpio_deinit((gpio_num_t)pin);
+	}
 	gpio_hold_dis((gpio_num_t)gpio::power_screen_backlight);
 	gpio_hold_dis((gpio_num_t)gpio::power_probes);
 	gpio_hold_dis((gpio_num_t)gpio::power_adc_circuit);

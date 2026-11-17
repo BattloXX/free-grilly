@@ -184,6 +184,11 @@ void JsonUtilities::load_json_status(char *buffer){
     jsondoc["last_off_reason"]    = grill::last_off_reason;
     jsondoc["sleep_wakes"]        = grill::sleep_wakes;
     jsondoc["sleep_wakes_ignored"] = grill::sleep_wakes_ignored;
+    jsondoc["off_drain_ua"] = grill::off_drain_ua;
+    jsondoc["off_hours"] = roundf(grill::off_seconds / 360.0f) / 10.0f;
+    jsondoc["off_capacity_drop_mah"] = grill::off_capacity_drop_mah;
+    jsondoc["off_wakes_ignored"] = grill::off_wakes_ignored;
+    jsondoc["battery_remaining_mah"] = grill::battery_remaining_mah.load();
     jsondoc["uptime_seconds"]     = (uint32_t)(esp_timer_get_time() / 1000000ULL);
     jsondoc["wifi_connected"]     = grill::wifi_connected;
     jsondoc["wifi_ssid"]          = config::wifi_ssid;

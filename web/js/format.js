@@ -41,6 +41,14 @@ const Format = (() => {
     return parts.join(", ");
   }
 
+  function offDrain(drainUa, hours) {
+    if (!isNumber(drainUa) || drainUa < 0 || !isNumber(hours) || hours < 1) {
+      return "unknown (need ≥ 1 h off, not charging)";
+    }
+    const current = drainUa >= 1000 ? (drainUa / 1000).toFixed(1) + " mA" : Math.round(drainUa) + " µA";
+    return current + " over " + hours.toFixed(1) + " h";
+  }
+
   const RESET_REASON_LABELS = {
     power_on: "Power on",
     software: "After an update or restart",
@@ -142,7 +150,7 @@ const Format = (() => {
   }
 
   return { unitSymbol, number, temperature, signal, battery, batteryDiagnostics, resetReasonText,
-           offReasonText, alarmMode, probeStatus, alarmLabel, duration, ago, eta, emptySockets, changedFields };
+           offReasonText, offDrain, alarmMode, probeStatus, alarmLabel, duration, ago, eta, emptySockets, changedFields };
 })();
 
 if (typeof module === "object" && module.exports) module.exports = Format;

@@ -21,6 +21,8 @@
     fields.off.textContent = Format.offReasonText(status.last_off_reason);
     fields["sleep-wakes"].textContent = status.sleep_wakes;
     fields["sleep-wakes-ignored"].textContent = status.sleep_wakes_ignored;
+    fields["off-drain"].textContent = Format.offDrain(status.off_drain_ua, status.off_hours);
+    fields["off-wakes-ignored"].textContent = status.off_wakes_ignored;
   }
 
   function mount(el) {
@@ -43,6 +45,8 @@
       '    <dt>Last switched off</dt><dd data-about="off"></dd>' +
       '    <dt>Deep-sleep wakes</dt><dd data-about="sleep-wakes"></dd>' +
       '    <dt>Ignored wakes</dt><dd data-about="sleep-wakes-ignored"></dd>' +
+      '    <dt>Drain while off</dt><dd data-about="off-drain"></dd>' +
+      '    <dt>Ignored wakes while off</dt><dd data-about="off-wakes-ignored"></dd>' +
       '  </dl>' +
       '  <p><a class="button" href="https://github.com/bardesss/grilly-plus" target="_blank" rel="noopener">Grilly+ on GitHub</a></p>' +
       '  <p class="hint">Grilly+ is a fork of <a href="https://github.com/epiecs/free-grilly" target="_blank" rel="noopener">Free-Grilly</a> ' +
