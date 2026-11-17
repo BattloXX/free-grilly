@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Fixes
+- Accidental wakes while switched off are filtered by a deep-sleep wake stub before the bootloader or app runs, keeping the power rails held off and counting the ignored wakes in the existing diagnostics
+
 ### New
 - About shows estimated battery drain while switched off and ignored wakes during that time, measured by the fuel gauge after at least one hour off; the last result survives restarts and firmware updates
 - `/api/grill` reports `off_drain_ua`, `off_hours`, `off_capacity_drop_mah`, `off_wakes_ignored`, and `battery_remaining_mah`

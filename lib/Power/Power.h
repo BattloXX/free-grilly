@@ -206,3 +206,6 @@ private:
 
 extern bat battery;
 extern pwr power;
+
+// Collect and reset wakes rejected before the bootloader/application ran.
+uint32_t wake_stub_take_ignored();

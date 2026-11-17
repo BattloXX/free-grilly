@@ -52,10 +52,6 @@ void setup() {
     Serial.begin(115200); // Initialize serial communication at 115200 bits per second
     // delay(5000);          // Give serial monitor time to catch up
 
-    // This must happen before the boot-gate beep. It is harmless on a normal boot and releases
-    // the buzzer hold left by a previous deep sleep before any LEDC code tries to use it.
-    power.release_holds();
-
     //* Power button pin is set early so an accidental deep-sleep wake can return to sleep before
     //* touching NVS, WiFi, or the display.
     pinMode(gpio::power_button, INPUT);
@@ -79,16 +75,24 @@ void setup() {
     }
 
     if (reset_reason == ESP_RST_POWERON) {
+        wake_stub_take_ignored();
         grill::off_drain_magic = 0;
         grill::sleep_wakes = 0;
         grill::sleep_wakes_ignored = 0;
     } else if (reset_reason == ESP_RST_DEEPSLEEP) {
+        const uint32_t n = wake_stub_take_ignored();
+        grill::sleep_wakes += n;
+        grill::sleep_wakes_ignored += n;
         grill::sleep_wakes++;
         if (digitalRead(gpio::power_button) != LOW) {
             grill::sleep_wakes_ignored++;
             power.shutdown();
         }
     }
+
+    // Keep the rail pins held through the ignored-wake fallback above. Release the holds
+    // before the boot-gate beep so the buzzer is available before any LEDC code uses it.
+    power.release_holds();
 
     // Guards the Strings shared between tasks, must exist before the first task starts
     create_shared_lock();

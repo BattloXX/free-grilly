@@ -112,12 +112,12 @@ components:
           type: integer
           readOnly: true
           example: 3
-          description: Deep-sleep wakes since the last power-on reset.
+          description: Deep-sleep wakes since the last power-on reset, including wakes handled by the wake stub.
         sleep_wakes_ignored:
           type: integer
           readOnly: true
           example: 1
-          description: Deep-sleep wakes that returned to sleep because the device was not turned on.
+          description: Deep-sleep wakes that returned to sleep because the device was not turned on, including wakes handled by the wake stub.
         off_drain_ua:
           type: integer
           readOnly: true
